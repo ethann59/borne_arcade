@@ -8,10 +8,17 @@ echo "Veuillez patienter"
 ./clean.sh
 ./compilation.sh
 
+# Source MG2D classpath from compilation
+if [ -f .mg2d_env ]; then
+  source .mg2d_env
+else
+  MG2D_CP="/home/pi/git/MG2D"  # fallback
+fi
+
 echo "Lancement du  Menu"
 echo "Veuillez patienter"
 
-java -cp .:/home/pi/git/MG2D Main
+java -cp .:"$MG2D_CP" Main
 
 ./clean.sh
 
