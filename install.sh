@@ -132,6 +132,13 @@ clone_or_update() {
   fi
 }
 
+# Récupérer le code de MG2D depuis son repo Github fraichement cloné
+
+mkdir -p "$GIT_DIR/MG2D_lib"
+cp "$GIT_DIR/MG2D/MG2D/*" "$GIT_DIR/MG2D_lib/" || { echo "Échec de la copie de MG2D"; exit 1; }
+rm -rf "$GIT_DIR/MG2D" || { echo "Échec de la suppression du dossier MG2D"; exit 1; }
+mv "$GIT_DIR/MG2D_lib" "$GIT_DIR/MG2D" || { echo "Échec du renommage de MG2D_lib en MG2D"; exit 1; }
+
 clone_or_update "$MG2D_REPO" "MG2D"
 clone_or_update "$BORNE_REPO" "borne_arcade"
 

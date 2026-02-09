@@ -7,8 +7,39 @@ set -euo pipefail
 # - compile menu et chaque jeu en ajoutant MG2D au classpath
 
 MG2D_REPO="https://github.com/synave/MG2D.git"
-MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D/}"
+MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D}"
 
+# Normalize and prefer repository-local MG2D if present
+if command -v realpath >/dev/null 2>&1; then
+  MG2D_DIR="$(realpath -m "$MG2D_DIR")"
+else
+  MG2D_DIR="${MG2D_DIR%/}"
+fi
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+candidates=(
+  "$SCRIPT_ROOT/MG2D"
+  "$SCRIPT_ROOT/projet/MG2D"
+  "$MG2D_DIR"
+  "$HOME/git/MG2D"
+  "/home/pi/git/MG2D"
+  "./MG2D"
+)
+
+found=""
+for c in "${candidates[@]}"; do
+  if [ -d "$c/MG2D" ]; then
+    found="$c"
+    break
+  elif [ -d "$c/geometrie" ]; then
+    # c is already the inner MG2D folder; use its parent so that $MG2D_DIR/MG2D exists
+    found="$(dirname "$c")"
+    break
+  fi
+done
+
+if [ -n "$found" ]; then
+  MG2D_DIR="$found"
+fi
 
 # Offer to clone if not present
 if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
