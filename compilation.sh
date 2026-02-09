@@ -9,12 +9,13 @@ set -euo pipefail
 MG2D_REPO="https://github.com/synave/MG2D.git"
 MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D}"
 
-# Normalize and prefer repository-local MG2D if present
+# Normalize path
 if command -v realpath >/dev/null 2>&1; then
   MG2D_DIR="$(realpath -m "$MG2D_DIR")"
 else
   MG2D_DIR="${MG2D_DIR%/}"
 fi
+
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 candidates=(
   "$SCRIPT_ROOT/MG2D"
@@ -27,12 +28,9 @@ candidates=(
 
 found=""
 for c in "${candidates[@]}"; do
-  if [ -d "$c/MG2D" ]; then
+  # Check if this directory contains the standard MG2D repo structure (MG2D/MG2D/, Makefile)
+  if [ -f "$c/Makefile" ] && [ -d "$c/MG2D" ] && [ -f "$c/MG2D/Fenetre.java" ]; then
     found="$c"
-    break
-  elif [ -d "$c/geometrie" ]; then
-    # c is already the inner MG2D folder; use its parent so that $MG2D_DIR/MG2D exists
-    found="$(dirname "$c")"
     break
   fi
 done
@@ -42,28 +40,31 @@ if [ -n "$found" ]; then
 fi
 
 # Offer to clone if not present
-if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
-  echo "MG2D introuvable. Chemin testé: $MG2D_DIR/MG2D"
-  read -r -p "Voulez-vous cloner MG2D dans ${MG2D_DIR%/*} ? [Y/n] " ans || true
+if [ ! -d "$MG2D_DIR" ] || [ ! -f "$MG2D_DIR/Makefile" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
+  echo "MG2D introuvable. Chemin testé: $MG2D_DIR (Makefile et MG2D/ requis)"
+  read -r -p "Voulez-vous cloner MG2D dans ${MG2D_DIR} ? [Y/n] " ans || true
   ans=${ans:-Y}
   if [[ "$ans" =~ ^[Yy]$ ]]; then
     mkdir -p "$(dirname "$MG2D_DIR")"
-    git clone "$MG2D_REPO" "${MG2D_DIR}" || { echo "Échec du clonage de MG2D"; exit 1; }
+    git clone "$MG2D_REPO" "$MG2D_DIR" || { echo "Échec du clonage de MG2D"; exit 1; }
   else
     echo "MG2D requis pour la compilation. Définissez MG2D_DIR ou clonez le dépôt puis relancez." >&2
     exit 1
   fi
 fi
 
-# Compute classpath entry: MG2D_DIR (parent of MG2D source folder)
+# Use MG2D_DIR as classpath (standard repo structure: MG2D/MG2D/, MG2D/Makefile)
 MG2D_CP="$MG2D_DIR"
 
-# Compile MG2D if there are no .class files
+# Compile MG2D if there are no .class files (suivre le Makefile officiel)
 if ! find "$MG2D_DIR/MG2D" -name "*.class" -print -quit >/dev/null 2>&1; then
   echo "Compilation de MG2D..."
   (cd "$MG2D_DIR" && javac MG2D/*.java MG2D/geometrie/*.java MG2D/audio/*.java) || { echo "Échec compilation MG2D"; exit 1; }
   echo "MG2D compilé."
 fi
+
+# Export MG2D path for other scripts
+echo "export MG2D_CP='$MG2D_CP'" > .mg2d_env
 
 echo "Compilation du menu de la borne d'arcade"
 echo "Veuillez patienter"
