@@ -1,6 +1,7 @@
 import java.awt.Font;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.ArrayList;
 import javax.swing.*;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -125,32 +126,22 @@ public class Graphique {
 	cheminMusiques = FileSystems.getDefault().getPath("sound", "bg");
 	cptMus=0;
 	if (Files.isDirectory(cheminMusiques)) {
+	    ArrayList<String> musiques = new ArrayList<>();
 	    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(cheminMusiques)) {
 		for (Path path : directoryStream) {
 		    if (Files.isRegularFile(path)) {
-			cptMus++;
+			String name = path.getFileName().toString().toLowerCase();
+			if (name.endsWith(".mp3") || name.endsWith(".wav") || name.endsWith(".ogg")) {
+			    musiques.add(path.toAbsolutePath().toString());
+			}
 		    }
 		}
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    }
-	} else if (Files.isRegularFile(cheminMusiques)) {
-	    cptMus = 1;
-	    tableauMusiques = new String[] { cheminMusiques.getFileName().toString() };
-	}
-	//Creation d'un tableau de musiques
-	if (cptMus > 0 && Files.isDirectory(cheminMusiques)) {
-	    tableauMusiques = new String[cptMus];
-	    try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(cheminMusiques)) {
-		int i = cptMus-1;
-		for (Path path : directoryStream) {
-		    if (Files.isRegularFile(path)) {
-			tableauMusiques[i]=path.getFileName().toString();
-			i--;
-		    }
-		}
-	    } catch (IOException e) {
-		e.printStackTrace();
+	    cptMus = musiques.size();
+	    if (cptMus > 0) {
+		tableauMusiques = musiques.toArray(new String[0]);
 	    }
 	}
 	//Choix d'une musique aleatoire et lecture de celle-ci
@@ -284,11 +275,7 @@ public class Graphique {
 	if (cptMus <= 0 || tableauMusiques == null || tableauMusiques.length == 0 || cheminMusiques == null) {
 	    return;
 	}
-	Path musiquePath = cheminMusiques;
-	if (Files.isDirectory(cheminMusiques)) {
-	    musiquePath = cheminMusiques.resolve(tableauMusiques[(int)(Math.random()*cptMus)]);
-	}
-	musiqueFond = new Bruitage (musiquePath.toString());
+	musiqueFond = new Bruitage (tableauMusiques[(int)(Math.random()*cptMus)]);
 	musiqueFond.lecture();
     }
 	
