@@ -135,8 +135,14 @@ clone_or_update() {
 clone_or_update "$MG2D_REPO" "MG2D"
 clone_or_update "$BORNE_REPO" "borne_arcade"
 
-# Rendre les scripts exécutables
-run_cmd find "$GIT_DIR/borne_arcade" -maxdepth 2 -type f -name "*.sh" -exec chmod +x {} \;
+# Rendre les scripts exécutables (sécurisé contre l'expansion du shell)
+if [ -d "$GIT_DIR/borne_arcade" ]; then
+  # Utilise bash -lc pour que le motif '*.sh' soit évalué par la commande find elle-même
+  # et on utilise '-exec ... +' pour regrouper les appels chmod, plus efficace.
+  run_cmd bash -lc "find \"${GIT_DIR}/borne_arcade\" -maxdepth 2 -type f -name '*.sh' -exec chmod +x {} +"
+else
+  echo "Aucun dossier $GIT_DIR/borne_arcade trouvé — saut de l'étape chmod."
+fi
 
 # Installer borne.desktop dans autostart
 if [ -f "$GIT_DIR/borne_arcade/borne.desktop" ]; then
