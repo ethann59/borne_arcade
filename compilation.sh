@@ -79,8 +79,20 @@ for i in *; do
         cd "$i"
         echo "Compilation du jeu $i"
         echo "Veuillez patienter"
+    if [ -f requirements.txt ]; then
+      if command -v python3 >/dev/null 2>&1; then
+        echo "Installation des dependances Python pour $i"
+        PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install --user -r requirements.txt
+      else
+        echo "Python3 introuvable, dependances Python ignorees pour $i"
+      fi
+    fi
         # Ajuster le classpath depuis les sous-dossiers (../..:$MG2D_CP au lieu de .:$MG2D_CP)
-        javac -cp .:"$MG2D_CP":../.. *.java || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+    if ls *.java >/dev/null 2>&1; then
+      javac -cp .:"$MG2D_CP":../.. *.java || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+    else
+      echo "Aucun fichier Java pour $i, compilation ignorée."
+    fi
         cd ..
     fi
 done

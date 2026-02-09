@@ -63,11 +63,16 @@ class HighScore{
 	Font font;
 	font = null;
 	try{
-	    File in = new File("/home/pi/git/borne_arcade/fonts/PrStart.ttf");
-	    font = font.createFont(Font.TRUETYPE_FONT, in);
-	    font = font.deriveFont(64.0f);
+	    File in = new File("fonts/PrStart.ttf");
+	    if (in.isFile()) {
+		font = font.createFont(Font.TRUETYPE_FONT, in);
+		font = font.deriveFont(64.0f);
+	    }
 	}catch (Exception e) {
 	    System.err.println(e.getMessage());
+	}
+	if (font == null) {
+	    font = new Font("SansSerif", Font.PLAIN, 64);
 	}
 	Texte highscore = new Texte(Couleur.NOIR, "H  I  G  H  S  C  O  R  E", font, new Point(640,950));
 	Texte scoreAtteint = new Texte(Couleur.NOIR, score, font, new Point(420,400));

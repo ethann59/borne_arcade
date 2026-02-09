@@ -144,13 +144,16 @@ public class Score {
         Font font;
         font = null;
         try {
-            File in = new File("/home/pi/git/borne_arcade/fonts/PrStart.ttf");
-            // File in = new File("E:/Mathilde/BUT_INFO/S6/borne_arcade/fonts/PrStart.ttf");
-            // // Ne pas oublier
-            font = font.createFont(Font.TRUETYPE_FONT, in);
-            font = font.deriveFont(20.0f);
+            File in = new File("fonts/PrStart.ttf");
+            if (in.isFile()) {
+                font = font.createFont(Font.TRUETYPE_FONT, in);
+                font = font.deriveFont(20.0f);
+            }
         } catch (Exception e) {
             System.err.println(e.getMessage());
+        }
+        if (font == null) {
+            font = new Font("SansSerif", Font.PLAIN, 20);
         }
         Texte highscore = new Texte(Couleur.NOIR, "H  I  G  H  S  C  O  R  E", font, new Point(640, 950));
 
