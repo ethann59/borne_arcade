@@ -7,33 +7,8 @@ set -euo pipefail
 # - compile menu et chaque jeu en ajoutant MG2D au classpath
 
 MG2D_REPO="https://github.com/synave/MG2D.git"
-MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D}"
+MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D/MG2D}"
 
-# Prefer MG2D included in this repository (./MG2D or ./projet/MG2D)
-SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$SCRIPT_ROOT/MG2D/MG2D" ]; then
-  MG2D_DIR="$SCRIPT_ROOT/MG2D"
-elif [ -d "$SCRIPT_ROOT/MG2D" ] && [ -d "$SCRIPT_ROOT/MG2D/geometrie" ]; then
-  MG2D_DIR="$SCRIPT_ROOT"
-elif [ -d "$SCRIPT_ROOT/projet/MG2D/MG2D" ]; then
-  MG2D_DIR="$SCRIPT_ROOT/projet/MG2D"
-elif [ -d "$SCRIPT_ROOT/projet/MG2D" ] && [ -d "$SCRIPT_ROOT/projet/MG2D/geometrie" ]; then
-  MG2D_DIR="$SCRIPT_ROOT/projet"
-fi
-
-# Try common locations if still not found
-if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
-  if [ -d "$HOME/git/MG2D/MG2D" ]; then
-    MG2D_DIR="$HOME/git/MG2D"
-  elif [ -d "/home/pi/git/MG2D/MG2D" ]; then
-    MG2D_DIR="/home/pi/git/MG2D"
-  elif [ -d "./MG2D/MG2D" ]; then
-    MG2D_DIR="$(pwd)/MG2D"
-  elif [ -d "$MG2D_DIR" ]; then
-    # Keep the original value if it exists
-    :
-  fi
-fi
 
 # Offer to clone if not present
 if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
