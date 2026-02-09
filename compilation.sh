@@ -9,20 +9,35 @@ set -euo pipefail
 MG2D_REPO="https://github.com/synave/MG2D.git"
 MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D}"
 
-# Try common locations if default doesn't exist
-if [ ! -d "$MG2D_DIR" ]; then
-  if [ -d "$HOME/git/MG2D" ]; then
+# Prefer MG2D included in this repository (./MG2D or ./projet/MG2D)
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_ROOT/MG2D/MG2D" ]; then
+  MG2D_DIR="$SCRIPT_ROOT/MG2D"
+elif [ -d "$SCRIPT_ROOT/MG2D" ] && [ -d "$SCRIPT_ROOT/MG2D/geometrie" ]; then
+  MG2D_DIR="$SCRIPT_ROOT"
+elif [ -d "$SCRIPT_ROOT/projet/MG2D/MG2D" ]; then
+  MG2D_DIR="$SCRIPT_ROOT/projet/MG2D"
+elif [ -d "$SCRIPT_ROOT/projet/MG2D" ] && [ -d "$SCRIPT_ROOT/projet/MG2D/geometrie" ]; then
+  MG2D_DIR="$SCRIPT_ROOT/projet"
+fi
+
+# Try common locations if still not found
+if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
+  if [ -d "$HOME/git/MG2D/MG2D" ]; then
     MG2D_DIR="$HOME/git/MG2D"
-  elif [ -d "/home/pi/git/MG2D" ]; then
+  elif [ -d "/home/pi/git/MG2D/MG2D" ]; then
     MG2D_DIR="/home/pi/git/MG2D"
-  elif [ -d "./MG2D" ]; then
+  elif [ -d "./MG2D/MG2D" ]; then
     MG2D_DIR="$(pwd)/MG2D"
+  elif [ -d "$MG2D_DIR" ]; then
+    # Keep the original value if it exists
+    :
   fi
 fi
 
 # Offer to clone if not present
-if [ ! -d "$MG2D_DIR" ]; then
-  echo "MG2D introuvable. Chemin testé: $MG2D_DIR"
+if [ ! -d "$MG2D_DIR" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
+  echo "MG2D introuvable. Chemin testé: $MG2D_DIR/MG2D"
   read -r -p "Voulez-vous cloner MG2D dans ${MG2D_DIR%/*} ? [Y/n] " ans || true
   ans=${ans:-Y}
   if [[ "$ans" =~ ^[Yy]$ ]]; then
@@ -34,11 +49,11 @@ if [ ! -d "$MG2D_DIR" ]; then
   fi
 fi
 
-# Compute classpath entry: parent directory of MG2D (so that import MG2D.* trouve la racine)
-MG2D_CP="$(dirname "$MG2D_DIR")"
+# Compute classpath entry: MG2D_DIR (parent of MG2D source folder)
+MG2D_CP="$MG2D_DIR"
 
-# Compile MG2D if there is no .class
-if ! find "$MG2D_DIR" -name "*.class" -print -quit >/dev/null 2>&1; then
+# Compile MG2D if there are no .class files
+if ! find "$MG2D_DIR/MG2D" -name "*.class" -print -quit >/dev/null 2>&1; then
   echo "Compilation de MG2D..."
   (cd "$MG2D_DIR" && javac MG2D/*.java MG2D/geometrie/*.java MG2D/audio/*.java) || { echo "Échec compilation MG2D"; exit 1; }
   echo "MG2D compilé."
