@@ -53,8 +53,10 @@ if [ ! -d "$MG2D_DIR" ] || [ ! -f "$MG2D_DIR/Makefile" ] || [ ! -d "$MG2D_DIR/MG
   fi
 fi
 
-# Use MG2D_DIR as classpath (standard repo structure: MG2D/MG2D/, MG2D/Makefile)
-MG2D_CP="$MG2D_DIR"
+# Use parent of MG2D_DIR as classpath (so that import MG2D.* works correctly)
+MG2D_CP="$(dirname "$MG2D_DIR/MG2D")"
+echo "MG2D détecté dans: $MG2D_DIR"
+echo "Classpath utilisé: $MG2D_CP"
 
 # Compile MG2D if there are no .class files (suivre le Makefile officiel)
 if ! find "$MG2D_DIR/MG2D" -name "*.class" -print -quit >/dev/null 2>&1; then
@@ -77,7 +79,8 @@ for i in *; do
         cd "$i"
         echo "Compilation du jeu $i"
         echo "Veuillez patienter"
-        javac -cp .:"$MG2D_CP" *.java || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+        # Ajuster le classpath depuis les sous-dossiers (../..:$MG2D_CP au lieu de .:$MG2D_CP)
+        javac -cp .:"$MG2D_CP":../.. *.java || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
         cd ..
     fi
 done
