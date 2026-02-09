@@ -7,7 +7,7 @@ set -euo pipefail
 # - compile menu et chaque jeu en ajoutant MG2D au classpath
 
 MG2D_REPO="https://github.com/synave/MG2D.git"
-MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D/MG2D}"
+MG2D_DIR="${MG2D_DIR:-$HOME/git/MG2D/}"
 
 
 # Offer to clone if not present
