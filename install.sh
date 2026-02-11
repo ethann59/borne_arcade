@@ -24,6 +24,7 @@ Environment variables (optional):
   PYTHON_PKG          Nom du paquet Python à installer (défaut: python3). Ex: PYTHON_PKG=python3.12
   PYTHON_EXTRAS       Paquets Python supplémentaires (défaut: "python3-venv python3-pip")
   JAVA_PKG            Forcer un paquet JDK spécifique (ex: openjdk-8-jdk)
+  LOVE_PKG            Forcer un paquet LÖVE spécifique (ex: love, love2d). Si défini, remplace le paquet par défaut.
 
   -h, --help          Affiche cette aide
 EOF
@@ -62,19 +63,21 @@ JAVA_PKG=""
 # Python package selection (modifiable via env var): default python3 and common helpers
 PYTHON_PKG="${PYTHON_PKG:-python3}"
 PYTHON_EXTRAS="${PYTHON_EXTRAS:-python3-venv python3-pip}"
+# LÖVE package (modifiable via env var): default 'love' but can be overridden with LOVE_PKG
+LOVE_PKG="${LOVE_PKG:-love}"
 
 if command -v apt-get >/dev/null 2>&1; then
   PM=apt
   JAVA_PKG="default-jdk"   # installe la dernière JDK disponible dans la distribution
   INSTALL_CMD="sudo apt-get update && sudo apt-get install -y"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" $PYTHON_EXTRAS)
+  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
 elif command -v dnf >/dev/null 2>&1; then
   PM=dnf
   JAVA_PKG="java-latest-openjdk-devel"
   # Fedora fournit python3 et pip via python3-pip
   PYTHON_EXTRAS="python3-virtualenv python3-pip"
   INSTALL_CMD="sudo dnf install -y"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" $PYTHON_EXTRAS)
+  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
 elif command -v pacman >/dev/null 2>&1; then
   PM=pacman
   JAVA_PKG="jdk-openjdk"
@@ -82,7 +85,7 @@ elif command -v pacman >/dev/null 2>&1; then
   PYTHON_PKG="${PYTHON_PKG:-python}"
   PYTHON_EXTRAS="python-pip"
   INSTALL_CMD="sudo pacman -Syu --noconfirm"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" $PYTHON_EXTRAS)
+  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
 else
   echo "Gestionnaire de paquets non pris en charge. Installez manuellement Git, Python et un JDK."
   exit 1
@@ -176,6 +179,12 @@ else
 fi
 if command -v pip3 >/dev/null 2>&1; then
   echo "pip3: $(pip3 --version | head -n 1)"
+fi
+
+if command -v love >/dev/null 2>&1; then
+  echo "love: $(love --version 2>&1 | head -n 1)"
+else
+  echo "love: non installé ou 'love' non trouvé dans le PATH"
 fi
 
 cat <<EOF
