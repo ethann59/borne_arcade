@@ -25,7 +25,8 @@ Environment variables (optional):
   PYTHON_EXTRAS       Paquets Python supplémentaires (défaut: "python3-venv python3-pip")
   JAVA_PKG            Forcer un paquet JDK spécifique (ex: openjdk-8-jdk)
   LOVE_PKG            Forcer un paquet LÖVE spécifique (ex: love, love2d). Si défini, remplace le paquet par défaut.
-
+  INSTALL_PY_REQUIREMENTS  Installer les dépendances Python détectées via pip3 (true/false, défaut: false)
+  PY_PIP_USER_INSTALL      Si true, installe les dépendances avec "--user" plutôt que globalement
   -h, --help          Affiche cette aide
 EOF
 }
@@ -137,6 +138,62 @@ clone_or_update() {
 
 clone_or_update "$MG2D_REPO" "MG2D"
 clone_or_update "$BORNE_REPO" "borne_arcade"
+
+# === Installation optionnelle des dépendances Python ===
+# Contrôlable via la variable d'environnement INSTALL_PY_REQUIREMENTS (true/false)
+INSTALL_PY_REQUIREMENTS="${INSTALL_PY_REQUIREMENTS:-false}"
+PY_PIP_USER_INSTALL="${PY_PIP_USER_INSTALL:-false}"
+
+# Rassemble tous les fichiers requirements.txt présents (racine du dépôt + projets)
+REQ_FILES=()
+if [ -f "${GIT_DIR}/borne_arcade/requirements.txt" ]; then
+  REQ_FILES+=("${GIT_DIR}/borne_arcade/requirements.txt")
+fi
+for f in "${GIT_DIR}/borne_arcade"/projet/*/requirements.txt; do
+  [ -f "$f" ] && REQ_FILES+=("$f")
+done
+
+if [ ${#REQ_FILES[@]} -gt 0 ]; then
+  echo "Fichiers de dépendances Python détectés :"
+  for r in "${REQ_FILES[@]}"; do echo "  - $r"; done
+
+  if [ "$INSTALL_PY_REQUIREMENTS" != "true" ] && [ "$NONINTERACTIVE" = false ]; then
+    read -r -p "Installer ces dépendances via pip3 ? [y/N] " ans || true
+    ans=${ans:-N}
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+      INSTALL_PY_REQUIREMENTS=true
+    fi
+  fi
+
+  if [ "$INSTALL_PY_REQUIREMENTS" = "true" ]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "python3 introuvable — impossible d'installer les dépendances Python." 
+    else
+      if ! python3 -m pip --version >/dev/null 2>&1; then
+        echo "pip introuvable pour python3 — tentative d'installation via gestionnaire de paquets..."
+        case "$PM" in
+          apt) run_cmd sudo apt-get install -y python3-pip ;; 
+          dnf) run_cmd sudo dnf install -y python3-pip ;; 
+          pacman) run_cmd sudo pacman -S --noconfirm python-pip ;;
+        esac
+      fi
+
+      echo "Installation des dépendances Python"
+      run_cmd python3 -m pip install --upgrade pip
+      for req in "${REQ_FILES[@]}"; do
+        if [ "$PY_PIP_USER_INSTALL" = "true" ]; then
+          run_cmd python3 -m pip install --user -r "$req"
+        else
+          run_cmd python3 -m pip install -r "$req"
+        fi
+      done
+    fi
+  else
+    echo "Installation des dépendances Python ignorée (set INSTALL_PY_REQUIREMENTS=true pour forcer)."
+  fi
+else
+  echo "Aucun fichier requirements.txt trouvé dans le dépôt — aucune dépendance Python à installer."
+fi
 
 # Rendre les scripts exécutables (sécurisé contre l'expansion du shell)
 if [ -d "$GIT_DIR/borne_arcade" ]; then

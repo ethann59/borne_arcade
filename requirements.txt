@@ -1,0 +1,16 @@
+# Fichier global de dépendances pour les jeux Python du dépôt
+# Installer avec : pip install -r requirements.txt
+
+# Moteur de jeu commun (ball-blast fixe cette version)
+pygame==2.6.1
+
+# Librairie audio utilisée par PianoTile
+librosa
+
+# Utilisé par TronGame pour la génération de sons
+numpy
+
+# Dépendances optionnelles (décommenter si nécessaire)
+# pydub>=0.25.1  # effets sonores avancés
+# Pillow>=10.0.0 # génération/traitement d'images
+# psutil>=5.9.0  # analyse de performance
