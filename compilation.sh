@@ -16,6 +16,9 @@ else
   MG2D_DIR="${MG2D_DIR%/}"
 fi
 
+# Optionnel: forcer une recompilation complète (true/false). Utile pour débogage ou CI.
+FORCE_REBUILD="${FORCE_REBUILD:-false}"
+
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 candidates=(
   "$SCRIPT_ROOT/MG2D"
@@ -58,19 +61,47 @@ MG2D_CP="$(dirname "$MG2D_DIR/MG2D")"
 echo "MG2D détecté dans: $MG2D_DIR"
 echo "Classpath utilisé: $MG2D_CP"
 
-# Compile MG2D if there are no .class files (suivre le Makefile officiel)
-if ! find "$MG2D_DIR/MG2D" -name "*.class" -print -quit >/dev/null 2>&1; then
+# Compilation incrémentale de MG2D: compiler si FORCE_REBUILD=true, si des .class manquent
+# ou si un .java est plus récent que son .class correspondant.
+echo "Vérification de l'état de compilation de MG2D..."
+need_mg2d_compile=false
+mg2d_compile_list=()
+for src in "$MG2D_DIR"/MG2D/*.java "$MG2D_DIR"/MG2D/geometrie/*.java "$MG2D_DIR"/MG2D/audio/*.java; do
+  [ -f "$src" ] || continue
+  cls="${src%.java}.class"
+  if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+    need_mg2d_compile=true
+    mg2d_compile_list+=("$src")
+  fi
+done
+
+if [ "$need_mg2d_compile" = true ]; then
   echo "Compilation de MG2D..."
-  (cd "$MG2D_DIR" && javac MG2D/*.java MG2D/geometrie/*.java MG2D/audio/*.java) || { echo "Échec compilation MG2D"; exit 1; }
+  (cd "$MG2D_DIR" && javac "${mg2d_compile_list[@]}") || { echo "Échec compilation MG2D"; exit 1; }
   echo "MG2D compilé."
+else
+  echo "MG2D à jour, compilation ignorée."
 fi
 
-# Export MG2D path for other scripts
+# Export MG2D path for d'autres scripts
 echo "export MG2D_CP='$MG2D_CP'" > .mg2d_env
 
+# Compilation incrémentale du menu principal
 echo "Compilation du menu de la borne d'arcade"
 echo "Veuillez patienter"
-javac -cp .:"$MG2D_CP" *.java
+menu_compile_list=()
+for src in *.java; do
+  [ -f "$src" ] || continue
+  cls="${src%.java}.class"
+  if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+    menu_compile_list+=("$src")
+  fi
+done
+if [ ${#menu_compile_list[@]} -eq 0 ]; then
+  echo "Menu à jour, compilation ignorée."
+else
+  javac -cp .:"$MG2D_CP" "${menu_compile_list[@]}"
+fi
 
 cd projet
 
@@ -79,20 +110,41 @@ for i in *; do
         cd "$i"
         echo "Compilation du jeu $i"
         echo "Veuillez patienter"
+
+    # Installer les dépendances Python uniquement si besoin (fichier de tampon .requirements_installed)
     if [ -f requirements.txt ]; then
       if command -v python3 >/dev/null 2>&1; then
-        echo "Installation des dependances Python pour $i"
-        PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install --user -r requirements.txt
+        if [ ! -f .requirements_installed ] || [ requirements.txt -nt .requirements_installed ]; then
+          echo "Installation / mise à jour des dépendances Python pour $i"
+          PIP_BREAK_SYSTEM_PACKAGES=1 python3 -m pip install --user -r requirements.txt && touch .requirements_installed
+        else
+          echo "Dépendances Python pour $i déjà installées, saut."
+        fi
       else
         echo "Python3 introuvable, dependances Python ignorees pour $i"
       fi
     fi
-        # Ajuster le classpath depuis les sous-dossiers (../..:$MG2D_CP au lieu de .:$MG2D_CP)
+
+        # Compilation Java incrémentale dans le dossier du jeu
     if ls *.java >/dev/null 2>&1; then
-      javac -cp .:"$MG2D_CP":../.. *.java || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+      compile_list=()
+      for src in *.java; do
+        [ -f "$src" ] || continue
+        cls="${src%.java}.class"
+        if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+          compile_list+=("$src")
+        fi
+      done
+
+      if [ ${#compile_list[@]} -eq 0 ]; then
+        echo "Jeu $i à jour, compilation ignorée."
+      else
+        javac -cp .:"$MG2D_CP":../.. "${compile_list[@]}" || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+      fi
     else
       echo "Aucun fichier Java pour $i, compilation ignorée."
     fi
+
         cd ..
     fi
 done
