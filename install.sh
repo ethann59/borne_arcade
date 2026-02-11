@@ -8,6 +8,7 @@ set -euo pipefail
 GIT_DIR="${GIT_DIR:-$HOME/git}"
 MG2D_REPO="${MG2D_REPO:-https://github.com/synave/MG2D.git}"
 BORNE_REPO="${BORNE_REPO:-https://github.com/ethann59/borne_arcade.git}"
+GALAD_SCOTT_REPO="${GALAD_SCOTT_REPO:-https://github.com/ethann59/Galad-Scott.git}"
 AUTOSTART_DEST="$HOME/.config/autostart/borne.desktop"
 DRY_RUN=false
 NONINTERACTIVE=false
@@ -25,6 +26,8 @@ Environment variables (optional):
   PYTHON_EXTRAS       Paquets Python supplémentaires (défaut: "python3-venv python3-pip")
   JAVA_PKG            Forcer un paquet JDK spécifique (ex: openjdk-8-jdk)
   LOVE_PKG            Forcer un paquet LÖVE spécifique (ex: love, love2d). Si défini, remplace le paquet par défaut.
+  GALAD_SCOTT_REPO    Dépôt Git du jeu Galad Scott (défaut: https://github.com/ethann59/Galad-Scott.git)
+  GALAD_SCOTT_DEST    Dossier cible du clone (défaut: "/home/<user>/git/borne_arcade/projet/Galad-Scott")
   INSTALL_PY_REQUIREMENTS  Installer les dépendances Python détectées via pip3 (true/false, défaut: false)
   PY_PIP_USER_INSTALL      Si true, installe les dépendances avec "--user" plutôt que globalement
   -h, --help          Affiche cette aide
@@ -42,6 +45,10 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1"; print_help; exit 2 ;;
   esac
 done
+
+if [ -z "${GALAD_SCOTT_DEST:-}" ]; then
+  GALAD_SCOTT_DEST="$GIT_DIR/borne_arcade/projet/Galad-Scott"
+fi
 
 run_cmd() {
   if [ "$DRY_RUN" = true ]; then
@@ -136,8 +143,26 @@ clone_or_update() {
   fi
 }
 
+clone_or_update_to() {
+  local url="$1" dest="$2"
+  if [ -d "$dest/.git" ]; then
+    echo "Mise à jour de $(basename "$dest") dans $dest"
+    run_cmd git -C "$dest" pull --rebase
+  else
+    echo "Clonage de $(basename "$dest") dans $dest"
+    run_cmd git clone "$url" "$dest"
+  fi
+}
+
 clone_or_update "$MG2D_REPO" "MG2D"
 clone_or_update "$BORNE_REPO" "borne_arcade"
+
+if [ -d "$GIT_DIR/borne_arcade" ]; then
+  run_cmd mkdir -p "$(dirname "$GALAD_SCOTT_DEST")"
+  clone_or_update_to "$GALAD_SCOTT_REPO" "$GALAD_SCOTT_DEST"
+else
+  echo "Dossier borne_arcade introuvable — clone de Galad Scott ignoré."
+fi
 
 # === Installation optionnelle des dépendances Python ===
 # Contrôlable via la variable d'environnement INSTALL_PY_REQUIREMENTS (true/false)
