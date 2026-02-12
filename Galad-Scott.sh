@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
+xdotool mousemove 1280 1024
 cd projet/Galad-Scott
+touch highscore
 python3 main.py
