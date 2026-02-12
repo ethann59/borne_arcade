@@ -166,8 +166,24 @@ fi
 
 # === Installation optionnelle des dépendances Python ===
 # Contrôlable via la variable d'environnement INSTALL_PY_REQUIREMENTS (true/false)
+# Nouveauté: INSTALL_PY_METHOD peut être "auto" (par défaut), "pip" ou "apt".
+#  - auto : utilise apt si le gestionnaire de paquets est apt, sinon pip
+#  - apt  : tentative d'installation via apt, puis erreur ou fallback selon mode
+#  - pip  : force l'installation via pip
 INSTALL_PY_REQUIREMENTS="${INSTALL_PY_REQUIREMENTS:-false}"
 PY_PIP_USER_INSTALL="${PY_PIP_USER_INSTALL:-false}"
+# Default install method: prefer 'apt' on Debian/Ubuntu, otherwise 'pip'.
+if [ -z "${INSTALL_PY_METHOD:-}" ]; then
+  if [ "${PM:-}" = "apt" ]; then
+    INSTALL_PY_METHOD="apt"
+  else
+    INSTALL_PY_METHOD="pip"
+  fi
+else
+  INSTALL_PY_METHOD="${INSTALL_PY_METHOD}"
+fi
+# values: apt|pip
+echo "INSTALL_PY_METHOD=$INSTALL_PY_METHOD"
 
 # Rassemble tous les fichiers requirements.txt présents (racine du dépôt + projets)
 REQ_FILES=()
@@ -183,7 +199,7 @@ if [ ${#REQ_FILES[@]} -gt 0 ]; then
   for r in "${REQ_FILES[@]}"; do echo "  - $r"; done
 
   if [ "$INSTALL_PY_REQUIREMENTS" != "true" ] && [ "$NONINTERACTIVE" = false ]; then
-    read -r -p "Installer ces dépendances via pip3 ? [y/N] " ans || true
+    read -r -p "Installer ces dépendances ? [y/N] " ans || true
     ans=${ans:-N}
     if [[ "$ans" =~ ^[Yy]$ ]]; then
       INSTALL_PY_REQUIREMENTS=true
@@ -193,7 +209,112 @@ if [ ${#REQ_FILES[@]} -gt 0 ]; then
   if [ "$INSTALL_PY_REQUIREMENTS" = "true" ]; then
     if ! command -v python3 >/dev/null 2>&1; then
       echo "python3 introuvable — impossible d'installer les dépendances Python." 
+      return 0
+    fi
+
+    # Si l'utilisateur a choisi explicitement 'pip', on installe via pip.
+    # Si 'auto' et gestionnaire apt, on essaiera apt d'abord puis basculera sur pip pour
+    # les paquets non trouvés. Si 'apt' explicit, on tentera apt et n'utilisera pas pip.
+    use_apt=false
+    if [ "$INSTALL_PY_METHOD" = "apt" ] || { [ "$INSTALL_PY_METHOD" = "auto" ] && [ "$PM" = "apt" ]; }; then
+      use_apt=true
+    fi
+
+    # Assurer la présence de pip si on va l'utiliser (fallback ou méthode pip)
+    if [ "$use_apt" = false ] || [ "$INSTALL_PY_METHOD" = "pip" ] || [ "$PM" != "apt" ]; then
+      if ! python3 -m pip --version >/dev/null 2>&1; then
+        echo "pip introuvable pour python3 — tentative d'installation via gestionnaire de paquets..."
+        case "$PM" in
+          apt) run_cmd sudo apt-get install -y python3-pip ;; 
+          dnf) run_cmd sudo dnf install -y python3-pip ;; 
+          pacman) run_cmd sudo pacman -S --noconfirm python-pip ;;
+        esac
+      fi
+    fi
+
+    if [ "$use_apt" = true ]; then
+      echo "Tentative d'installation des dépendances via apt (fallback vers pip pour les paquets introuvables)."
+      for req in "${REQ_FILES[@]}"; do
+        echo "Traitement: $req"
+        tmpfile=$(mktemp)
+        apt_missing=()
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          # ignorer commentaires et lignes vides
+          line="$(echo "$line" | sed -E 's/[[:space:]]*#.*$//; s/\r$//')"
+          [ -z "$line" ] && continue
+          # ignorer URL/git/editable entries — on les installera via pip
+          case "$line" in
+            -e*|git+*|http*|https*|file:*) apt_missing+=("$line") ; continue ;;
+          esac
+
+          # extraire le nom du paquet (enlever les contraintes de version)
+          pkg_name="$(echo "$line" | sed -E 's/([><=~!].*)$//' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9+.-].*$//')"
+          # essayer les conventions courantes de paquets Debian
+          sys_pkg="python3-$pkg_name"
+
+          if run_cmd sudo apt-get install -y "$sys_pkg" >/dev/null 2>&1; then
+            echo "Installed via apt: $sys_pkg"
+            continue
+          fi
+          if run_cmd sudo apt-get install -y "$pkg_name" >/dev/null 2>&1; then
+            echo "Installed via apt: $pkg_name"
+            continue
+          fi
+
+          apt_missing+=("$line")
+        done < "$req"
+
+        if [ ${#apt_missing[@]} -gt 0 ]; then
+          echo "Paquets non trouves via apt pour $req: ${apt_missing[*]}"
+          if [ "$INSTALL_PY_METHOD" = "apt" ]; then
+            echo "Mode 'apt' force — certains paquets sont introuvables via apt. Ignorés."
+            continue
+          fi
+
+          # installer les paquets restants via pip
+          printf "%s\n" "${apt_missing[@]}" > "$tmpfile"
+          if ! python3 -m pip --version >/dev/null 2>&1; then
+            echo "pip non disponible — tentative d'installation de pip..."
+            run_cmd sudo apt-get install -y python3-pip
+          fi
+          # Try installing the remaining packages via pip; on failure, create a project venv and retry there.
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY-RUN: python3 -m pip install -r $tmpfile"
+          else
+            if [ "$PY_PIP_USER_INSTALL" = "true" ]; then
+              if python3 -m pip install --user -r "$tmpfile"; then
+                echo "Install via pip (user) successful"
+              else
+                echo "pip install (user) failed — creation d'un virtualenv local et re-essai"
+                python3 -m venv "${GIT_DIR}/borne_arcade/.venv"
+                # shellcheck disable=SC1091
+                source "${GIT_DIR}/borne_arcade/.venv/bin/activate"
+                python -m pip install --upgrade pip
+                python -m pip install -r "$tmpfile"
+                deactivate || true
+              fi
+            else
+              if python3 -m pip install -r "$tmpfile"; then
+                echo "Install via pip successful"
+              else
+                echo "pip install failed — creation d'un virtualenv local et re-essai"
+                python3 -m venv "${GIT_DIR}/borne_arcade/.venv"
+                # shellcheck disable=SC1091
+                source "${GIT_DIR}/borne_arcade/.venv/bin/activate"
+                python -m pip install --upgrade pip
+                python -m pip install -r "$tmpfile"
+                deactivate || true
+              fi
+            fi
+          fi
+          rm -f "$tmpfile"
+        fi
+      done
+
     else
+      # Méthode pip (ou fallback général)
+      echo "Installation via pip des fichiers requirements"
       if ! python3 -m pip --version >/dev/null 2>&1; then
         echo "pip introuvable pour python3 — tentative d'installation via gestionnaire de paquets..."
         case "$PM" in
@@ -203,13 +324,36 @@ if [ ${#REQ_FILES[@]} -gt 0 ]; then
         esac
       fi
 
-      echo "Installation des dépendances Python"
       run_cmd python3 -m pip install --upgrade pip
       for req in "${REQ_FILES[@]}"; do
         if [ "$PY_PIP_USER_INSTALL" = "true" ]; then
-          run_cmd python3 -m pip install --user -r "$req"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY-RUN: python3 -m pip install --user -r $req"
+          else
+            if ! python3 -m pip install --user -r "$req"; then
+              echo "pip (user) failed for $req — creation d'un virtualenv local et re-essai"
+              python3 -m venv "${GIT_DIR}/borne_arcade/.venv"
+              # shellcheck disable=SC1091
+              source "${GIT_DIR}/borne_arcade/.venv/bin/activate"
+              python -m pip install --upgrade pip
+              python -m pip install --user -r "$req" || python -m pip install -r "$req"
+              deactivate || true
+            fi
+          fi
         else
-          run_cmd python3 -m pip install -r "$req"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY-RUN: python3 -m pip install -r $req"
+          else
+            if ! python3 -m pip install -r "$req"; then
+              echo "pip install failed for $req — creation d'un virtualenv local et re-essai"
+              python3 -m venv "${GIT_DIR}/borne_arcade/.venv"
+              # shellcheck disable=SC1091
+              source "${GIT_DIR}/borne_arcade/.venv/bin/activate"
+              python -m pip install --upgrade pip
+              python -m pip install -r "$req"
+              deactivate || true
+            fi
+          fi
         fi
       done
     fi

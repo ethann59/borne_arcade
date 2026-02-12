@@ -56,13 +56,21 @@ if [ ! -d "$MG2D_DIR" ] || [ ! -f "$MG2D_DIR/Makefile" ] || [ ! -d "$MG2D_DIR/MG
   fi
 fi
 
-# Use parent of MG2D_DIR as classpath (so that import MG2D.* works correctly)
-MG2D_CP="$(dirname "$MG2D_DIR/MG2D")"
+# Prefer a prebuilt JAR if present; otherwise use directory classpath.
+mg2d_jar="$MG2D_DIR/mg2d.jar"
+if [ -f "$mg2d_jar" ] && [ "$FORCE_REBUILD" != "true" ]; then
+  MG2D_CP="$mg2d_jar"
+else
+  MG2D_CP="$(dirname "$MG2D_DIR/MG2D")"
+fi
+
 echo "MG2D détecté dans: $MG2D_DIR"
 echo "Classpath utilisé: $MG2D_CP"
 
 # Compilation incrémentale de MG2D: compiler si FORCE_REBUILD=true, si des .class manquent
-# ou si un .java est plus récent que son .class correspondant.
+# ou si un .java est plus récent que son .class correspondant. Après compilation,
+# empaqueter MG2D en mg2d.jar pour les déploiements (la borne pourra alors juste
+# vérifier la présence de ce .jar au démarrage).
 echo "Vérification de l'état de compilation de MG2D..."
 need_mg2d_compile=false
 mg2d_compile_list=()
@@ -75,10 +83,24 @@ for src in "$MG2D_DIR"/MG2D/*.java "$MG2D_DIR"/MG2D/geometrie/*.java "$MG2D_DIR"
   fi
 done
 
+# If a fresh mg2d.jar exists and no source is newer, skip compiling .class
+if [ -f "$mg2d_jar" ] && [ "$FORCE_REBUILD" != "true" ]; then
+  newest_java=$(find "$MG2D_DIR/MG2D" -name '*.java' -print0 | xargs -0 stat -c '%Y' 2>/dev/null | sort -n | tail -n1 || true)
+  jar_mtime=$(stat -c '%Y' "$mg2d_jar" 2>/dev/null || true)
+  if [ -n "$jar_mtime" ] && [ -n "$newest_java" ] && [ "$jar_mtime" -ge "$newest_java" ]; then
+    need_mg2d_compile=false
+    echo "mg2d.jar à jour — compilation MG2D ignorée."
+  fi
+fi
+
 if [ "$need_mg2d_compile" = true ]; then
   echo "Compilation de MG2D..."
   (cd "$MG2D_DIR" && javac "${mg2d_compile_list[@]}") || { echo "Échec compilation MG2D"; exit 1; }
   echo "MG2D compilé."
+  # Créer/mettre à jour le JAR de déploiement
+  echo "Génération de $mg2d_jar"
+  (cd "$MG2D_DIR" && jar cf "$(basename "$mg2d_jar")" MG2D) || { echo "Échec creation du jar MG2D"; exit 1; }
+  MG2D_CP="$mg2d_jar"
 else
   echo "MG2D à jour, compilation ignorée."
 fi

@@ -71,6 +71,14 @@ check_updates "borne_arcade" "$BORNE_DIR" BORNE_UPDATED
 check_updates "Galad-Scott" "$GALAD_SCOTT_DIR" ""
 
 cd "$BORNE_DIR"
+
+# Activate local virtualenv if present (created by install.sh as .venv)
+if [ -f "$BORNE_DIR/.venv/bin/activate" ]; then
+  echo "Activation du virtualenv local: $BORNE_DIR/.venv"
+  # shellcheck disable=SC1091
+  source "$BORNE_DIR/.venv/bin/activate"
+fi
+
 if [ "$BORNE_UPDATED" = true ]; then
   echo "nettoyage des répertoires"
   echo "Veuillez patienter"
@@ -80,11 +88,31 @@ else
   echo "Aucune mise a jour de la borne, compilation ignoree"
 fi
 
-# Source MG2D classpath from compilation
+# If compilation artifacts are missing, try to detect a prebuilt mg2d.jar first
+mg2d_candidates=("$BORNE_DIR/../MG2D/mg2d.jar" "/home/pi/git/MG2D/mg2d.jar" "$HOME/git/MG2D/mg2d.jar" "$BORNE_DIR/MG2D/mg2d.jar")
+found_mg2d_jar=""
+for c in "${mg2d_candidates[@]}"; do
+  [ -f "$c" ] || continue
+  found_mg2d_jar="$c"
+  break
+done
+
+if [ -n "$found_mg2d_jar" ] && [ ! -f .mg2d_env ]; then
+  echo "mg2d.jar detecte: $found_mg2d_jar — ecriture de .mg2d_env"
+  echo "export MG2D_CP='$found_mg2d_jar'" > .mg2d_env
+fi
+
+if [ ! -f Main.class ] || [ ! -f .mg2d_env ]; then
+  echo "Fichiers compilés manquants ou .mg2d_env absent — lancement de ./compilation.sh"
+  ./compilation.sh
+fi
+
+# Source MG2D classpath from compilation (re-source after possible compilation)
 if [ -f .mg2d_env ]; then
+  # shellcheck disable=SC1091
   source .mg2d_env
 else
-  MG2D_CP="/home/pi/git/MG2D"  # fallback
+  MG2D_CP="/home/pi/git/MG2D/mg2d.jar"  # fallback to jar location
 fi
 
 echo "Lancement du  Menu"
