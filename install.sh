@@ -154,7 +154,21 @@ clone_or_update_to() {
   fi
 }
 
-clone_or_update "$MG2D_REPO" "MG2D"
+# Si un mg2d.jar précompilé existe déjà, éviter de cloner MG2D inutilement
+mg2d_candidates=("$GIT_DIR/../MG2D/mg2d.jar" "/home/pi/git/MG2D/mg2d.jar" "$HOME/git/MG2D/mg2d.jar" "$GIT_DIR/MG2D/mg2d.jar")
+found_mg2d_jar=""
+for c in "${mg2d_candidates[@]}"; do
+  [ -f "$c" ] || continue
+  found_mg2d_jar="$c"
+  break
+done
+
+if [ -n "$found_mg2d_jar" ]; then
+  echo "mg2d.jar préexistant détecté : $found_mg2d_jar — clonage de MG2D ignoré"
+else
+  clone_or_update "$MG2D_REPO" "MG2D"
+fi
+
 clone_or_update "$BORNE_REPO" "borne_arcade"
 
 if [ -d "$GIT_DIR/borne_arcade" ]; then
