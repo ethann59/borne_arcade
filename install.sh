@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # install.sh — Script d'installation pour Debian/Ubuntu/Raspbian/Fedora/Arch
-# Il installe Git et un JDK (la version "par défaut" du dépôt), clone MG2D et borne_arcade
-# et place `borne.desktop` dans ~/.config/autostart/.
+# Il installe Git et un JDK (la version "par défaut" du dépôt), clone `borne_arcade`
+# et place `borne.desktop` dans ~/.config/autostart/. MG2D n'est plus cloné ici —
+# le build utilise le `mg2d.jar` fourni dans le dépôt.
 
 GIT_DIR="${GIT_DIR:-$HOME/git}"
-MG2D_REPO="${MG2D_REPO:-https://github.com/synave/MG2D.git}"
 BORNE_REPO="${BORNE_REPO:-https://github.com/ethann59/borne_arcade.git}"
 GALAD_SCOTT_REPO="${GALAD_SCOTT_REPO:-https://github.com/ethann59/Galad-Scott.git}"
 AUTOSTART_DEST="$HOME/.config/autostart/borne.desktop"
@@ -154,20 +154,9 @@ clone_or_update_to() {
   fi
 }
 
-# Si un mg2d.jar précompilé existe déjà, éviter de cloner MG2D inutilement
-mg2d_candidates=("$GIT_DIR/../MG2D/mg2d.jar" "/home/pi/git/MG2D/mg2d.jar" "$HOME/git/MG2D/mg2d.jar" "$GIT_DIR/MG2D/mg2d.jar")
-found_mg2d_jar=""
-for c in "${mg2d_candidates[@]}"; do
-  [ -f "$c" ] || continue
-  found_mg2d_jar="$c"
-  break
-done
-
-if [ -n "$found_mg2d_jar" ]; then
-  echo "mg2d.jar préexistant détecté : $found_mg2d_jar — clonage de MG2D ignoré"
-else
-  clone_or_update "$MG2D_REPO" "MG2D"
-fi
+# MG2D n'est **pas** cloné par ce script — le projet fournit un `mg2d.jar`.
+# Si vous avez besoin des sources pour recompiler MG2D, définissez la variable
+# d'environnement `MG2D_DIR` ou clonez manuellement le dépôt dans ~/git/MG2D.
 
 clone_or_update "$BORNE_REPO" "borne_arcade"
 
