@@ -42,13 +42,41 @@ check_updates() {
 
   if [ "$local_rev" = "$base_rev" ]; then
     echo "Mise a jour disponible pour $name — pull automatique"
+
+    # détecte s'il y a des modifications non indexées ou fichiers non suivis
+    stashed=false
+    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
+      echo "Modifications locales non indexées détectées dans $name — tentative de stash"
+      stash_output=$(git -C "$dir" stash push -u -m "autostash from lancerBorne.sh" 2>&1) || true
+      if echo "$stash_output" | grep -q "No local changes to save"; then
+        stashed=false
+      else
+        echo "Modifications stashées pour $name"
+        stashed=true
+      fi
+    fi
+
     if git -C "$dir" pull --rebase --quiet; then
       echo "$name mis à jour"
       if [ -n "$updated_flag_var" ]; then
         eval "$updated_flag_var=true"
       fi
+
+      # réapplique le stash si nécessaire
+      if [ "$stashed" = true ]; then
+        if git -C "$dir" stash pop --quiet; then
+          echo "Stash appliqué avec succès pour $name"
+        else
+          echo "Conflits lors de l'application du stash pour $name — stash conservé (voir 'git -C \"$dir\" stash list')"
+        fi
+      fi
     else
       echo "Échec de la mise à jour pour $name"
+      # restaure le stash si pull a échoué
+      if [ "$stashed" = true ]; then
+        echo "Restauration du stash dans $name"
+        git -C "$dir" stash pop --quiet || echo "Impossible de restaurer automatiquement le stash — vérifier manuellement dans $dir"
+      fi
     fi
     return 0
   fi
