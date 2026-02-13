@@ -11,14 +11,16 @@ BORNE_REPO="${BORNE_REPO:-https://github.com/ethann59/borne_arcade.git}"
 GALAD_SCOTT_REPO="${GALAD_SCOTT_REPO:-https://github.com/ethann59/Galad-Scott.git}"
 AUTOSTART_DEST="$HOME/.config/autostart/borne.desktop"
 DRY_RUN=false
-NONINTERACTIVE=false
+# Exécution sans intervention humaine par défaut
+NONINTERACTIVE=true
 
 print_help() {
   cat <<EOF
-Usage: $0 [--dry-run] [--non-interactive] [--git-dir PATH]
+Usage: $0 [--dry-run] [--interactive] [--non-interactive] [--git-dir PATH]
 Options:
   --dry-run           Affiche les actions sans les exécuter
-  --non-interactive   Ne demande pas de confirmation (utilisez avec précaution)
+  --interactive       Force les invites (par défaut: non-interactif)
+  --non-interactive   Ne demande pas de confirmation (défaut)
   --git-dir PATH      Change le répertoire de destination des clones (défaut: ~/git)
 
 Environment variables (optional):
@@ -38,6 +40,7 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=true; shift ;;
+    --interactive) NONINTERACTIVE=false; shift ;;
     --non-interactive) NONINTERACTIVE=true; shift ;;
     --git-dir) GIT_DIR="$2"; shift 2 ;;
     --git-dir=*) GIT_DIR="${1#*=}"; shift ;;
