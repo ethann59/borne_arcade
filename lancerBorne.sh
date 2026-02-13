@@ -41,20 +41,14 @@ check_updates() {
   fi
 
   if [ "$local_rev" = "$base_rev" ]; then
-    echo "Mise a jour disponible pour $name"
-    if ! read -r -n 1 -t 8 -p "Appuyez sur la touche 'u' pour mettre a jour (8s), autre touche pour ignorer: " answer; then
-      echo
-      echo "Aucune touche detectee, mise a jour ignoree pour $name"
-      return 0
-    fi
-    echo
-    if [ "$answer" = "u" ] || [ "$answer" = "U" ]; then
-      git -C "$dir" pull --rebase
+    echo "Mise a jour disponible pour $name — pull automatique"
+    if git -C "$dir" pull --rebase --quiet; then
+      echo "$name mis à jour"
       if [ -n "$updated_flag_var" ]; then
         eval "$updated_flag_var=true"
       fi
     else
-      echo "Mise a jour ignoree pour $name"
+      echo "Échec de la mise à jour pour $name"
     fi
     return 0
   fi
@@ -68,7 +62,11 @@ check_updates() {
 }
 
 check_updates "borne_arcade" "$BORNE_DIR" BORNE_UPDATED
-check_updates "Galad-Scott" "$GALAD_SCOTT_DIR" ""
+if [ -d "$GALAD_SCOTT_DIR" ] && [ -d "$GALAD_SCOTT_DIR/.git" ]; then
+  check_updates "Galad-Scott" "$GALAD_SCOTT_DIR"
+else
+  echo "Galad-Scott absent ou non-git — mise à jour ignorée"
+fi
 
 cd "$BORNE_DIR"
 
