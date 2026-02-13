@@ -20,6 +20,20 @@ fi
 FORCE_REBUILD="${FORCE_REBUILD:-false}"
 
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Si un fichier .mg2d_env existe (écrit par lancerBorne.sh), l'utiliser prioritairement
+# afin de respecter un mg2d.jar fourni (chemins absolus possibles, p.ex. /home/pi/...).
+if [ -f "$SCRIPT_ROOT/.mg2d_env" ]; then
+  # shellcheck disable=SC1091
+  source "$SCRIPT_ROOT/.mg2d_env"
+  if [ -n "${MG2D_CP:-}" ]; then
+    # si MG2D_CP pointe vers un jar existant, définir MG2D_DIR sur son dossier
+    if [ -f "$MG2D_CP" ]; then
+      MG2D_DIR="$(dirname "$MG2D_CP")"
+    fi
+  fi
+fi
+
 candidates=(
   "$SCRIPT_ROOT/MG2D"
   "$SCRIPT_ROOT/projet/MG2D"
@@ -27,6 +41,7 @@ candidates=(
   "$HOME/git/MG2D"
   "/home/pi/git/MG2D"
   "./MG2D"
+  "$SCRIPT_ROOT"
 )
 
 found=""
@@ -38,20 +53,37 @@ for c in "${candidates[@]}"; do
   fi
 done
 
+# If no source-tree found, accept a provided mg2d.jar located next to the project
+# e.g. ./MG2D/mg2d.jar or ./mg2d.jar — treat that as a valid MG2D installation.
+if [ -z "$found" ]; then
+  for c in "${candidates[@]}"; do
+    if [ -f "$c/mg2d.jar" ]; then
+      found="$c"
+      break
+    fi
+    if [ -f "$c" ] && [ "$(basename "$c")" = "mg2d.jar" ]; then
+      # candidate points directly to a jar path
+      found="$(dirname "$c")"
+      break
+    fi
+  done
+fi
+
 if [ -n "$found" ]; then
   MG2D_DIR="$found"
 fi
 
-# Offer to clone if not present
-if [ ! -d "$MG2D_DIR" ] || [ ! -f "$MG2D_DIR/Makefile" ] || [ ! -d "$MG2D_DIR/MG2D" ]; then
-  echo "MG2D introuvable. Chemin testé: $MG2D_DIR (Makefile et MG2D/ requis)"
+# If neither a source tree nor a prebuilt jar exists, offer to clone (interactive fallback)
+mg2d_jar_candidate="$MG2D_DIR/mg2d.jar"
+if [ ! -f "$mg2d_jar_candidate" ] && ( [ ! -d "$MG2D_DIR" ] || [ ! -f "$MG2D_DIR/Makefile" ] || [ ! -d "$MG2D_DIR/MG2D" ] ); then
+  echo "MG2D introuvable (cherche source ou mg2d.jar). Chemin testé: $MG2D_DIR"
   read -r -p "Voulez-vous cloner MG2D dans ${MG2D_DIR} ? [Y/n] " ans || true
   ans=${ans:-Y}
   if [[ "$ans" =~ ^[Yy]$ ]]; then
     mkdir -p "$(dirname "$MG2D_DIR")"
     git clone "$MG2D_REPO" "$MG2D_DIR" || { echo "Échec du clonage de MG2D"; exit 1; }
   else
-    echo "MG2D requis pour la compilation. Définissez MG2D_DIR ou clonez le dépôt puis relancez." >&2
+    echo "MG2D requis pour la compilation. Définissez MG2D_DIR, placez un mg2d.jar ou clonez le dépôt puis relancez." >&2
     exit 1
   fi
 fi
