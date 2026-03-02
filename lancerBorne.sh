@@ -2,101 +2,34 @@
 
 setxkbmap borne
 
-BORNE_DIR="/home/pi/git/borne_arcade"
-GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
-BORNE_UPDATED=false
+# Déterminer le répertoire du script et se déplacer dedans
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
 
-check_updates() {
-  local name="$1"
-  local dir="$2"
-  local updated_flag_var="$3"
-
-  if [ ! -d "$dir/.git" ]; then
-    echo "Aucune source git pour $name (dossier: $dir)"
-    return 0
-  fi
-
-  if ! command -v git >/dev/null 2>&1; then
-    echo "git introuvable, mise a jour ignoree pour $name"
-    return 0
-  fi
-
-  local upstream
-  upstream=$(git -C "$dir" rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)
-  if [ -z "$upstream" ]; then
-    echo "Aucun upstream configure pour $name"
-    return 0
-  fi
-
-  git -C "$dir" fetch --quiet
-
-  local local_rev remote_rev base_rev
-  local_rev=$(git -C "$dir" rev-parse HEAD)
-  remote_rev=$(git -C "$dir" rev-parse "$upstream")
-  base_rev=$(git -C "$dir" merge-base HEAD "$upstream")
-
-  if [ "$local_rev" = "$remote_rev" ]; then
-    echo "$name est a jour"
-    return 0
-  fi
-
-  if [ "$local_rev" = "$base_rev" ]; then
-    echo "Mise a jour disponible pour $name — pull automatique"
-
-    # détecte s'il y a des modifications non indexées ou fichiers non suivis
-    stashed=false
-    if [ -n "$(git -C "$dir" status --porcelain)" ]; then
-      echo "Modifications locales non indexées détectées dans $name — tentative de stash"
-      stash_output=$(git -C "$dir" stash push -u -m "autostash from lancerBorne.sh" 2>&1) || true
-      if echo "$stash_output" | grep -q "No local changes to save"; then
-        stashed=false
-      else
-        echo "Modifications stashées pour $name"
-        stashed=true
-      fi
-    fi
-
-    if git -C "$dir" pull --rebase --quiet; then
-      echo "$name mis à jour"
-      if [ -n "$updated_flag_var" ]; then
-        eval "$updated_flag_var=true"
-      fi
-
-      # réapplique le stash si nécessaire
-      if [ "$stashed" = true ]; then
-        if git -C "$dir" stash pop --quiet; then
-          echo "Stash appliqué avec succès pour $name"
-        else
-          echo "Conflits lors de l'application du stash pour $name — stash conservé (voir 'git -C \"$dir\" stash list')"
-        fi
-      fi
-    else
-      echo "Échec de la mise à jour pour $name"
-      # restaure le stash si pull a échoué
-      if [ "$stashed" = true ]; then
-        echo "Restauration du stash dans $name"
-        git -C "$dir" stash pop --quiet || echo "Impossible de restaurer automatiquement le stash — vérifier manuellement dans $dir"
-      fi
-    fi
-    return 0
-  fi
-
-  if [ "$remote_rev" = "$base_rev" ]; then
-    echo "$name est en avance sur l'upstream (aucune mise a jour)"
-    return 0
-  fi
-
-  echo "$name a diverge de l'upstream (mise a jour ignoree)"
-}
-
-check_updates "borne_arcade" "$BORNE_DIR" BORNE_UPDATED
-if [ -d "$GALAD_SCOTT_DIR" ] && [ -d "$GALAD_SCOTT_DIR/.git" ]; then
-  check_updates "Galad-Scott" "$GALAD_SCOTT_DIR"
+# Définir les chemins (utilisera SCRIPT_DIR si pas sur le Raspberry Pi)
+if [ -d "/home/pi/git/borne_arcade" ]; then
+  export BORNE_DIR="/home/pi/git/borne_arcade"
 else
-  echo "Galad-Scott absent ou non-git — mise à jour ignorée"
+  export BORNE_DIR="$SCRIPT_DIR"
 fi
+GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 
-cd "$BORNE_DIR"
+# Lancer le script de mise à jour automatique
+echo "╔════════════════════════════════════════════════════╗"
+echo "║   Vérification des mises à jour...                ║"
+echo "╚════════════════════════════════════════════════════╝"
+
+# Exécuter updater.sh et capturer le code de retour
+# Le code de retour est 0 si des mises à jour ont été appliquées, 1 sinon
+if ./updater.sh; then
+  BORNE_UPDATED=true
+  echo ""
+  echo "✅ Des mises à jour ont été appliquées"
+else
+  BORNE_UPDATED=false
+  echo ""
+  echo "ℹ️  Aucune mise à jour nécessaire"
+fi
 
 # Activate local virtualenv if present (created by install.sh as .venv)
 if [ -f "$BORNE_DIR/.venv/bin/activate" ]; then
@@ -105,13 +38,19 @@ if [ -f "$BORNE_DIR/.venv/bin/activate" ]; then
   source "$BORNE_DIR/.venv/bin/activate"
 fi
 
+echo ""
 if [ "$BORNE_UPDATED" = true ]; then
-  echo "nettoyage des répertoires"
-  echo "Veuillez patienter"
+  echo "╔════════════════════════════════════════════════════╗"
+  echo "║   Recompilation nécessaire après mise à jour      ║"
+  echo "╚════════════════════════════════════════════════════╝"
+  echo "Nettoyage des répertoires..."
   ./clean.sh
+  echo "Compilation en cours..."
   ./compilation.sh
 else
-  echo "Aucune mise a jour de la borne, compilation ignoree"
+  echo "╔════════════════════════════════════════════════════╗"
+  echo "║   Aucune recompilation nécessaire                 ║"
+  echo "╚════════════════════════════════════════════════════╝"
 fi
 
 # If compilation artifacts are missing, try to detect a prebuilt mg2d.jar first
@@ -141,17 +80,36 @@ else
   MG2D_CP="/home/pi/git/MG2D/mg2d.jar"  # fallback to jar location
 fi
 
-echo "Lancement du  Menu"
-echo "Veuillez patienter"
+echo ""
+echo "╔════════════════════════════════════════════════════╗"
+echo "║   Lancement du Menu de la Borne Arcade            ║"
+echo "╚════════════════════════════════════════════════════╝"
+echo "Veuillez patienter..."
+echo ""
 
 java -cp .:"$MG2D_CP" Main
 
+echo ""
+echo "╔════════════════════════════════════════════════════╗"
+echo "║   Nettoyage avant extinction                       ║"
+echo "╚════════════════════════════════════════════════════╝"
 ./clean.sh
+
+echo ""
+echo "╔════════════════════════════════════════════════════╗"
+echo "║   ⏰ Extinction programmée dans 30 secondes       ║"
+echo "╚════════════════════════════════════════════════════╝"
 
 for i in {30..1}
 do
-    echo Extinction de la borne dans $i secondes
+    echo -ne "\r⏳ Extinction dans $i secondes... "
     sleep 1
 done
+
+echo ""
+echo ""
+echo "╔════════════════════════════════════════════════════╗"
+echo "║   🔌 Extinction de la borne en cours...           ║"
+echo "╚════════════════════════════════════════════════════╝"
 
 sudo halt
