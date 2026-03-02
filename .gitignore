@@ -1,2 +1,4 @@
 *.pyc
 /projet/Galad-Scott
+.requirements_installed
+.mg2d_env
