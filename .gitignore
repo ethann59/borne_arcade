@@ -1,7 +1,13 @@
 *.pyc
+
+# Galad Scott : on 
 /projet/Galad-Scott
+
+# Fichiers de la borne d'arcade
 .requirements_installed
 .mg2d_env
+highscore
+
 
 # Fichiers générés par l'updater
 .stash_reminder
