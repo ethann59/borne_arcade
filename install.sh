@@ -378,9 +378,6 @@ cat <<EOF
 - Repos clonés dans: $GIT_DIR
 - Si vous avez installé le script d'autostart: $AUTOSTART_DEST
 
-Pour lancer le script d'installation : 
-  chmod +x install.sh && sudo ./install.sh
-
 Si vous voulez forcer une JDK précise (par exemple openjdk-8-jdk), exportez JAVA_PKG avant d'exécuter:
   export JAVA_PKG=openjdk-8-jdk && sudo ./install.sh
 
