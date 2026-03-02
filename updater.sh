@@ -6,7 +6,7 @@ set -e
 
 # Déterminer le répertoire de la borne (où se trouve ce script)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BORNE_DIR="${BORNE_DIR:-$SCRIPT_DIR}"
+BORNE_DIR="$SCRIPT_DIR"
 GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 LOG_FILE="$BORNE_DIR/updater.log"
 STASH_REMINDER_FILE="$BORNE_DIR/.stash_reminder"

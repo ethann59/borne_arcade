@@ -6,12 +6,8 @@ setxkbmap borne
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-# Définir les chemins (utilisera SCRIPT_DIR si pas sur le Raspberry Pi)
-if [ -d "/home/pi/git/borne_arcade" ]; then
-  export BORNE_DIR="/home/pi/git/borne_arcade"
-else
-  export BORNE_DIR="$SCRIPT_DIR"
-fi
+# Définir les chemins
+export BORNE_DIR="$SCRIPT_DIR"
 GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 
 # Lancer le script de mise à jour automatique
