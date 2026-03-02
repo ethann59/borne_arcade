@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# install.sh — Script d'installation pour Debian/Ubuntu/Raspbian/Fedora/Arch
-# Il installe Git et un JDK (la version "par défaut" du dépôt), clone `borne_arcade`
-# et place `borne.desktop` dans ~/.config/autostart/. MG2D n'est plus cloné ici —
-# le build utilise le `mg2d.jar` fourni dans le dépôt.
+# install.sh — Script d'installation pour Debian/Ubuntu/Raspbian
+# Il installe Git, Python3, un JDK et LÖVE, clone `borne_arcade` et place `borne.desktop`
+# dans ~/.config/autostart/. MG2D n'est plus cloné ici — le build utilise
+# le `mg2d.jar` fourni dans le dépôt.
 
 GIT_DIR="${GIT_DIR:-$HOME/git}"
 BORNE_REPO="${BORNE_REPO:-https://github.com/ethann59/borne_arcade.git}"
@@ -23,15 +23,15 @@ Options:
   --non-interactive   Ne demande pas de confirmation (défaut)
   --git-dir PATH      Change le répertoire de destination des clones (défaut: ~/git)
 
-Environment variables (optional):
-  PYTHON_PKG          Nom du paquet Python à installer (défaut: python3). Ex: PYTHON_PKG=python3.12
+Variables d'environnement (optionnelles):
+  PYTHON_PKG          Paquet Python à installer (défaut: python3, ex: PYTHON_PKG=python3.12)
   PYTHON_EXTRAS       Paquets Python supplémentaires (défaut: "python3-venv python3-pip")
-  JAVA_PKG            Forcer un paquet JDK spécifique (ex: openjdk-8-jdk)
-  LOVE_PKG            Forcer un paquet LÖVE spécifique (ex: love, love2d). Si défini, remplace le paquet par défaut.
-  GALAD_SCOTT_REPO    Dépôt Git du jeu Galad Scott (défaut: https://github.com/ethann59/Galad-Scott.git)
-  GALAD_SCOTT_DEST    Dossier cible du clone (défaut: "/home/<user>/git/borne_arcade/projet/Galad-Scott")
-  INSTALL_PY_REQUIREMENTS  Installer les dépendances Python détectées via pip3 (true/false, défaut: false)
-  PY_PIP_USER_INSTALL      Si true, installe les dépendances avec "--user" plutôt que globalement
+  JAVA_PKG            Paquet JDK spécifique (défaut: openjdk-25-jdk)
+  LOVE_PKG            Paquet LÖVE (défaut: love)
+  GALAD_SCOTT_REPO    URL du dépôt Galad Scott
+  GALAD_SCOTT_DEST    Répertoire de destination pour Galad Scott
+  INSTALL_PY_REQUIREMENTS  Installer les dépendances Python (true/false, défaut: false)
+  PY_PIP_USER_INSTALL      Installer avec --user (défaut: false)
   -h, --help          Affiche cette aide
 EOF
 }
@@ -62,47 +62,27 @@ run_cmd() {
   fi
 }
 
-# require sudo for system installs
-if [ "$EUID" -ne 0 ]; then
-  echo "Note: certaines opérations nécessitent des privilèges sudo."
-  sudo -v || { echo "Erreur: sudo requis."; exit 1; }
-fi
-
-# Detect package manager and set packages
-PM=""
-JAVA_PKG=""
-# Python package selection (modifiable via env var): default python3 and common helpers
-PYTHON_PKG="${PYTHON_PKG:-python3}"
-PYTHON_EXTRAS="${PYTHON_EXTRAS:-python3-venv python3-pip}"
-# LÖVE package (modifiable via env var): default 'love' but can be overridden with LOVE_PKG
-LOVE_PKG="${LOVE_PKG:-love}"
-
-if command -v apt-get >/dev/null 2>&1; then
-  PM=apt
-  JAVA_PKG="default-jdk"   # installe la dernière JDK disponible dans la distribution
-  INSTALL_CMD="sudo apt-get update && sudo apt-get install -y"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
-elif command -v dnf >/dev/null 2>&1; then
-  PM=dnf
-  JAVA_PKG="java-latest-openjdk-devel"
-  # Fedora fournit python3 et pip via python3-pip
-  PYTHON_EXTRAS="python3-virtualenv python3-pip"
-  INSTALL_CMD="sudo dnf install -y"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
-elif command -v pacman >/dev/null 2>&1; then
-  PM=pacman
-  JAVA_PKG="jdk-openjdk"
-  # Arch: package names differ (python, python-pip)
-  PYTHON_PKG="${PYTHON_PKG:-python}"
-  PYTHON_EXTRAS="python-pip"
-  INSTALL_CMD="sudo pacman -Syu --noconfirm"
-  PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
-else
-  echo "Gestionnaire de paquets non pris en charge. Installez manuellement Git, Python et un JDK."
+# Vérifier que le système est Debian/Ubuntu
+if ! command -v apt-get >/dev/null 2>&1; then
+  echo "Erreur: apt-get non trouvé. Ce script est prévu pour Debian/Ubuntu."
   exit 1
 fi
 
-echo "Système détecté: $PM. Paquets à installer: ${PKGS[*]}"
+# Vérifier les privilèges sudo
+if [ "$EUID" -ne 0 ]; then
+  echo "Vérification des privilèges sudo..."
+  sudo -v || { echo "Erreur: sudo requis."; exit 1; }
+fi
+
+# Initialiser les variables de paquets
+JAVA_PKG="${JAVA_PKG:-openjdk-25-jdk}"
+PYTHON_PKG="${PYTHON_PKG:-python3}"
+PYTHON_EXTRAS="${PYTHON_EXTRAS:-python3-venv python3-pip}"
+LOVE_PKG="${LOVE_PKG:-love}"
+
+PKGS=(git "$JAVA_PKG" "$PYTHON_PKG" "$LOVE_PKG" $PYTHON_EXTRAS)
+echo "Système: Debian/Ubuntu"
+echo "Paquets à installer: ${PKGS[*]}"
 
 # Install packages
 if [ "$NONINTERACTIVE" = false ]; then
@@ -113,18 +93,8 @@ else
 fi
 
 if [[ "$ans" =~ ^[Yy]$ ]]; then
-  case "$PM" in
-    apt)
-      run_cmd sudo apt-get update
-      run_cmd sudo apt-get install -y "${PKGS[@]}"
-      ;;
-    dnf)
-      run_cmd sudo dnf install -y "${PKGS[@]}"
-      ;;
-    pacman)
-      run_cmd sudo pacman -Syu --noconfirm "${PKGS[@]}"
-      ;;
-  esac
+  run_cmd sudo apt-get update
+  run_cmd sudo apt-get install -y "${PKGS[@]}"
 else
   echo "Annulé par l'utilisateur."
   exit 0
@@ -172,24 +142,8 @@ fi
 
 # === Installation optionnelle des dépendances Python ===
 # Contrôlable via la variable d'environnement INSTALL_PY_REQUIREMENTS (true/false)
-# Nouveauté: INSTALL_PY_METHOD peut être "auto" (par défaut), "pip" ou "apt".
-#  - auto : utilise apt si le gestionnaire de paquets est apt, sinon pip
-#  - apt  : tentative d'installation via apt, puis erreur ou fallback selon mode
-#  - pip  : force l'installation via pip
 INSTALL_PY_REQUIREMENTS="${INSTALL_PY_REQUIREMENTS:-false}"
 PY_PIP_USER_INSTALL="${PY_PIP_USER_INSTALL:-false}"
-# Default install method: prefer 'apt' on Debian/Ubuntu, otherwise 'pip'.
-if [ -z "${INSTALL_PY_METHOD:-}" ]; then
-  if [ "${PM:-}" = "apt" ]; then
-    INSTALL_PY_METHOD="apt"
-  else
-    INSTALL_PY_METHOD="pip"
-  fi
-else
-  INSTALL_PY_METHOD="${INSTALL_PY_METHOD}"
-fi
-# values: apt|pip
-echo "INSTALL_PY_METHOD=$INSTALL_PY_METHOD"
 
 # Rassemble tous les fichiers requirements.txt présents (racine du dépôt + projets)
 REQ_FILES=()
