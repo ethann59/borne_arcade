@@ -10,10 +10,14 @@ BORNE_DIR="$SCRIPT_DIR"
 GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 LOG_FILE="$BORNE_DIR/updater.log"
 STASH_REMINDER_FILE="$BORNE_DIR/.stash_reminder"
+STATE_FILE="$BORNE_DIR/.update_state"
 UPDATED=false
+BORNE_REPO_UPDATED=false
+GALAD_SCOTT_UPDATED=false
 
 # Supprimer l'ancien fichier de rappel s'il existe
 rm -f "$STASH_REMINDER_FILE"
+rm -f "$STATE_FILE"
 
 # Fonction pour logger avec timestamp
 log_message() {
@@ -146,16 +150,24 @@ log_message "╚═════════════════════�
 # Mise à jour de la borne arcade
 if update_repository "borne_arcade" "$BORNE_DIR"; then
   log_message "✅ borne_arcade mise à jour"
+  BORNE_REPO_UPDATED=true
 fi
 
 # Mise à jour de Galad-Scott
 if [ -d "$GALAD_SCOTT_DIR" ]; then
   if update_repository "Galad-Scott" "$GALAD_SCOTT_DIR"; then
     log_message "✅ Galad-Scott mis à jour"
+    GALAD_SCOTT_UPDATED=true
   fi
 else
   log_message "⚠️  Galad-Scott absent du répertoire projet/"
 fi
+
+{
+  echo "export BORNE_REPO_UPDATED=$BORNE_REPO_UPDATED"
+  echo "export GALAD_SCOTT_UPDATED=$GALAD_SCOTT_UPDATED"
+  echo "export ANY_UPDATE_APPLIED=$UPDATED"
+} > "$STATE_FILE"
 
 # Résumé final
 log_message ""
@@ -165,7 +177,7 @@ if [ "$UPDATED" = true ]; then
   log_message "╚════════════════════════════════════════════════════╝"
   
   # Vérifier s'il y a des stash dans les dépôts
-  local has_stash=false
+  has_stash=false
   if [ -d "$BORNE_DIR/.git" ]; then
     if [ -n "$(git -C "$BORNE_DIR" stash list 2>/dev/null)" ]; then
       has_stash=true

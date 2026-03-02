@@ -40,6 +40,13 @@ else
   echo "ℹ️  Aucune mise à jour nécessaire"
 fi
 
+BORNE_REPO_UPDATED=false
+GALAD_SCOTT_UPDATED=false
+if [ -f .update_state ]; then
+  # shellcheck disable=SC1091
+  source .update_state
+fi
+
 # Activate local virtualenv if present (created by install.sh as .venv)
 if [ -f "$BORNE_DIR/.venv/bin/activate" ]; then
   echo "Activation du virtualenv local: $BORNE_DIR/.venv"
@@ -48,14 +55,22 @@ if [ -f "$BORNE_DIR/.venv/bin/activate" ]; then
 fi
 
 echo ""
-if [ "$BORNE_UPDATED" = true ]; then
+if [ "$BORNE_REPO_UPDATED" = true ]; then
   echo "╔════════════════════════════════════════════════════╗"
-  echo "║   Recompilation nécessaire après mise à jour      ║"
+  echo "║   Recompilation complète après MAJ de la borne    ║"
   echo "╚════════════════════════════════════════════════════╝"
   echo "Nettoyage des répertoires..."
   ./clean.sh
   echo "Compilation en cours..."
   ./compilation.sh
+elif [ "$GALAD_SCOTT_UPDATED" = true ]; then
+  echo "╔════════════════════════════════════════════════════╗"
+  echo "║   MAJ Galad-Scott: compilation ciblée             ║"
+  echo "╚════════════════════════════════════════════════════╝"
+  echo "Nettoyage des répertoires..."
+  ./clean.sh
+  echo "Compilation menu + Galad-Scott..."
+  ONLY_GALAD_SCOTT=true ./compilation.sh
 else
   echo "╔════════════════════════════════════════════════════╗"
   echo "║   Aucune recompilation nécessaire                 ║"
@@ -78,7 +93,11 @@ fi
 
 if [ ! -f Main.class ] || [ ! -f .mg2d_env ]; then
   echo "Fichiers compilés manquants ou .mg2d_env absent — lancement de ./compilation.sh"
-  ./compilation.sh
+  if [ "$BORNE_REPO_UPDATED" = true ]; then
+    ./compilation.sh
+  else
+    ONLY_GALAD_SCOTT=true ./compilation.sh
+  fi
 fi
 
 # Source MG2D classpath from compilation (re-source after possible compilation)
