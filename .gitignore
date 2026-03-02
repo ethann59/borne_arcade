@@ -2,3 +2,7 @@
 /projet/Galad-Scott
 .requirements_installed
 .mg2d_env
+
+# Fichiers générés par l'updater
+.stash_reminder
+updater.log

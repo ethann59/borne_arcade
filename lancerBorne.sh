@@ -25,6 +25,19 @@ if ./updater.sh; then
   BORNE_UPDATED=true
   echo ""
   echo "✅ Des mises à jour ont été appliquées"
+  
+  # Vérifier si des modifications ont été stashées
+  if [ -f .stash_reminder ]; then
+    echo ""
+    echo "╔════════════════════════════════════════════════════╗"
+    echo "║   ⚠️  ATTENTION : Modifications locales stashées  ║"
+    echo "╚════════════════════════════════════════════════════╝"
+    echo ""
+    cat .stash_reminder
+    echo ""
+    echo "Appuyez sur Entrée pour continuer..."
+    read -r
+  fi
 else
   BORNE_UPDATED=false
   echo ""
