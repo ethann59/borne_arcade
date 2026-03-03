@@ -30,7 +30,12 @@ def load_beatmap(filename):
     spec = importlib.util.spec_from_file_location("beatmap_module", map_path)
     beatmap_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(beatmap_module)
-    return beatmap_module.beatmap
+
+    normalized = []
+    for lane, note_time in beatmap_module.beatmap:
+        lane = max(0, min(int(lane), LANE_COUNT - 1))
+        normalized.append((lane, note_time))
+    return normalized
 
 
 def draw_pause_menu(screen, font):

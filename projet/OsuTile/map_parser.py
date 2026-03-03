@@ -1,4 +1,4 @@
-def parse_osu_file(filepath, lane_count=4):
+def parse_osu_file(filepath, lane_count=3):
     notes = []
     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()

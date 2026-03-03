@@ -15,7 +15,7 @@ TEXT_COLOR = (255, 255, 255)
 HIGHLIGHT_COLOR = (255, 255, 0)
 
 # === Jeu ===
-LANE_COUNT = 4
+LANE_COUNT = 3
 TILE_COLOR = (0, 150, 255)
 HIT_LINE_Y = 800
 FALL_TIME = 1.5
@@ -25,7 +25,7 @@ HIT_BOX_PIXEL = 30  # Tolérance
 # === Contrôles ===
 # Mappage des touches de jeu par colonne
 
-KEY_MAPPING = {0: pygame.K_t, 1: pygame.K_y, 2: pygame.K_a, 3: pygame.K_z}
+KEY_MAPPING = {0: pygame.K_r, 1: pygame.K_t, 2: pygame.K_y}
 
 PAUSE_KEY = pygame.K_f
 

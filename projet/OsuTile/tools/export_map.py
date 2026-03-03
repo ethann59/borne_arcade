@@ -3,7 +3,7 @@ import sys
 import re
 
 
-def parse_osu_file(path):
+def parse_osu_file(path, lane_count=3):
     notes = []
     with open(path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -22,8 +22,8 @@ def parse_osu_file(path):
                 continue
             x = int(parts[0])
             time = int(parts[2])
-            # osu!mania: 512px width divided equally per lane (assume 4 lanes)
-            lane = min(x * 4 // 512, 3)
+            # osu!mania: 512px width divided equally per lane
+            lane = min(x * lane_count // 512, lane_count - 1)
             notes.append((lane, time))
     return notes
 
