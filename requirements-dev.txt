@@ -1,0 +1,4 @@
+# Modules nécessaires à la générération de la documentation
+mkdocs
+mkdocs-material
+pymdown-extensions

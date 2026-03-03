@@ -1,7 +1,6 @@
 site_name: Documentation Borne d'Arcade
 site_description: Documentation technique de la borne d'arcade et de ses jeux
-site_author: IUT - SAE Maintenance
-site_url: https://localhost
+site_author: Ethann Cailliau
 
 theme:
   name: material
