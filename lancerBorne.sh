@@ -10,6 +10,31 @@ cd "$SCRIPT_DIR" || exit 1
 export BORNE_DIR="$SCRIPT_DIR"
 GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 
+java_artifacts_missing() {
+  # Vérifie les classes Java du menu (racine)
+  for src in "$BORNE_DIR"/*.java; do
+    [ -f "$src" ] || continue
+    cls="${src%.java}.class"
+    if [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+      return 0
+    fi
+  done
+
+  # Vérifie les classes Java des jeux (niveau direct projet/<jeu>/*.java)
+  for game_dir in "$BORNE_DIR"/projet/*; do
+    [ -d "$game_dir" ] || continue
+    for src in "$game_dir"/*.java; do
+      [ -f "$src" ] || continue
+      cls="${src%.java}.class"
+      if [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
 # Lancer le script de mise à jour automatique
 echo "╔════════════════════════════════════════════════════╗"
 echo "║   Vérification des mises à jour...                ║"
@@ -71,26 +96,23 @@ elif [ "$GALAD_SCOTT_UPDATED" = true ]; then
   ONLY_GALAD_SCOTT=true ./compilation.sh
 else
   echo "╔════════════════════════════════════════════════════╗"
-  echo "║   Aucune recompilation nécessaire                 ║"
+  echo "║   Aucune MAJ : vérification de la compilation     ║"
   echo "╚════════════════════════════════════════════════════╝"
 fi
 
-# If compilation artifacts are missing, try to detect a prebuilt mg2d.jar first
-mg2d_candidates=("$BORNE_DIR/../MG2D/mg2d.jar" "/home/pi/git/MG2D/mg2d.jar" "$HOME/git/MG2D/mg2d.jar" "$BORNE_DIR/MG2D/mg2d.jar")
-found_mg2d_jar=""
-for c in "${mg2d_candidates[@]}"; do
-  [ -f "$c" ] || continue
-  found_mg2d_jar="$c"
-  break
-done
-
-if [ -n "$found_mg2d_jar" ] && [ ! -f .mg2d_env ]; then
-  echo "mg2d.jar detecte: $found_mg2d_jar — ecriture de .mg2d_env"
-  echo "export MG2D_CP='$found_mg2d_jar'" > .mg2d_env
+# MG2D: uniquement .mg2d_env ou MG2D/mg2d.jar
+if [ ! -f .mg2d_env ] && [ -f "$BORNE_DIR/MG2D/mg2d.jar" ]; then
+  echo "mg2d.jar detecte: $BORNE_DIR/MG2D/mg2d.jar — ecriture de .mg2d_env"
+  echo "export MG2D_CP='$BORNE_DIR/MG2D/mg2d.jar'" > .mg2d_env
 fi
 
-if [ ! -f Main.class ] || [ ! -f .mg2d_env ]; then
-  echo "Fichiers compilés manquants ou .mg2d_env absent — lancement de ./compilation.sh"
+if [ -f .mg2d_env ]; then
+  # shellcheck disable=SC1091
+  source .mg2d_env
+fi
+
+if java_artifacts_missing || [ -z "${MG2D_CP:-}" ]; then
+  echo "Classes Java manquantes/obsolètes ou .mg2d_env absent — lancement de ./compilation.sh"
   if [ "$BORNE_REPO_UPDATED" = true ]; then
     ./compilation.sh
   else
@@ -98,12 +120,20 @@ if [ ! -f Main.class ] || [ ! -f .mg2d_env ]; then
   fi
 fi
 
+if java_artifacts_missing; then
+  echo "[ERREUR] Certaines classes Java sont toujours manquantes ou obsolètes après compilation."
+  exit 1
+fi
+
 # Source MG2D classpath from compilation (re-source after possible compilation)
 if [ -f .mg2d_env ]; then
   # shellcheck disable=SC1091
   source .mg2d_env
+elif [ -f "$BORNE_DIR/MG2D/mg2d.jar" ]; then
+  MG2D_CP="$BORNE_DIR/MG2D/mg2d.jar"
 else
-  MG2D_CP="/home/pi/git/MG2D/mg2d.jar"  # fallback to jar location
+  echo "[ERREUR] MG2D introuvable. Attendu: .mg2d_env ou $BORNE_DIR/MG2D/mg2d.jar"
+  exit 1
 fi
 
 echo ""
@@ -114,12 +144,6 @@ echo "Veuillez patienter..."
 echo ""
 
 java -cp .:"$MG2D_CP" Main
-
-echo ""
-echo "╔════════════════════════════════════════════════════╗"
-echo "║   Nettoyage avant extinction                       ║"
-echo "╚════════════════════════════════════════════════════╝"
-./clean.sh
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
