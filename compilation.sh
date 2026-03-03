@@ -20,6 +20,8 @@ fi
 FORCE_REBUILD="${FORCE_REBUILD:-false}"
 # Optionnel: compiler uniquement Galad-Scott (et le menu), sans compiler les autres jeux.
 ONLY_GALAD_SCOTT="${ONLY_GALAD_SCOTT:-false}"
+# Optionnel: encodage source Java (utile sur certaines Debian en locale non UTF-8)
+JAVAC_ENCODING="${JAVAC_ENCODING:-UTF-8}"
 
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -143,7 +145,7 @@ fi
 
 if [ "$need_mg2d_compile" = true ]; then
   echo "Compilation de MG2D..."
-  (cd "$MG2D_DIR" && javac "${mg2d_compile_list[@]}") || { echo "Échec compilation MG2D"; exit 1; }
+  (cd "$MG2D_DIR" && javac -encoding "$JAVAC_ENCODING" "${mg2d_compile_list[@]}") || { echo "Échec compilation MG2D"; exit 1; }
   echo "MG2D compilé."
   # Créer/mettre à jour le JAR de déploiement
   echo "Génération de $mg2d_jar"
@@ -170,7 +172,7 @@ done
 if [ ${#menu_compile_list[@]} -eq 0 ]; then
   echo "Menu à jour, compilation ignorée."
 else
-  javac -cp .:"$MG2D_CP" "${menu_compile_list[@]}"
+  javac -encoding "$JAVAC_ENCODING" -cp .:"$MG2D_CP" "${menu_compile_list[@]}"
 fi
 
 cd projet
@@ -213,7 +215,7 @@ for i in *; do
       if [ ${#compile_list[@]} -eq 0 ]; then
         echo "Jeu $i à jour, compilation ignorée."
       else
-        javac -cp .:"$MG2D_CP":../.. "${compile_list[@]}" || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
+        javac -encoding "$JAVAC_ENCODING" -cp .:"$MG2D_CP":../.. "${compile_list[@]}" || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
       fi
     else
       echo "Aucun fichier Java pour $i, compilation ignorée."
