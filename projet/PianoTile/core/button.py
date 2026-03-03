@@ -1,6 +1,15 @@
 import pygame
 
 class Button:
+    BOUTON_TXT_VALUES = [
+        "Colonne 1 (R/A)",
+        "Colonne 2 (T/Z)",
+        "Colonne 3 (Y/E)",
+        "Colonne 4 (F/Q)",
+        "Aucun (G/S)",
+        "Valider (H/D)",
+    ]
+
     def __init__(self):
         self.__buttons = {
             # Premier joueur
@@ -54,3 +63,7 @@ class Button:
         Exemple : {pygame.K_r: False, pygame.K_t: True, ...}
         """
         return self.__buttons.copy()
+
+    @classmethod
+    def get_bouton_txt_line(cls):
+        return "Mouvement PianoTile:" + ":".join(cls.BOUTON_TXT_VALUES) + ":"

@@ -3,6 +3,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.pageState import PageState
 from ui.interface import Interface
 from core.logic import Logic
+from core.button import Button
 from data.database import Database
 
 class Game:
@@ -94,6 +95,14 @@ class Game:
 
 if __name__ == "__main__":
     pygame.init()
+
+    # Met à jour automatiquement bouton.txt avec les touches réelles du jeu.
+    bouton_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bouton.txt"))
+    try:
+        with open(bouton_file, "w", encoding="utf-8") as f:
+            f.write(Button.get_bouton_txt_line() + "\n")
+    except Exception as e:
+        print(f"Impossible d'écrire {bouton_file}: {e}")
     
     Game = Game()
 

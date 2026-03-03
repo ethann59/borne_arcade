@@ -1,1 +1,1 @@
-Mouvement PianoTile:aucun:aucun:aucun:aucun:aucun:aucun:
+Mouvement PianoTile:Colonne 1 (R/A):Colonne 2 (T/Z):Colonne 3 (Y/E):Colonne 4 (F/Q):Aucun (G/S):Valider (H/D):

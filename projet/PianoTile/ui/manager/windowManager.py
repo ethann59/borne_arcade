@@ -84,7 +84,17 @@ class WindowManager:
         """ Met à jour la sélection de la musique. """
         self.__musicSelect = musicSelect
         if "Detail " not in self.getSelection().getSelection()[1][self.getSelection().getPosition()][0]:
+            self._show_loading_screen("Chargement de la musique...")
             self.__game = GameView(self)
+
+    def _show_loading_screen(self, message: str = "Chargement..."):
+        self.__window.fill((20, 20, 20))
+        title = self.__fontTall.render("PianoTile", True, self.__color.getBlanc())
+        text = self.__fontSmall.render(message, True, self.__color.getBlanc())
+        self.__window.blit(title, title.get_rect(center=(self.__screenWidth // 2, self.__screenHeight // 2 - 40)))
+        self.__window.blit(text, text.get_rect(center=(self.__screenWidth // 2, self.__screenHeight // 2 + 20)))
+        pygame.display.flip()
+        pygame.event.pump()
 
     def setSelection(self, selection):
         """ Met à jour la selection de la musique. """
