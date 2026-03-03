@@ -31,8 +31,6 @@ if ./updater.sh; then
     echo ""
     cat .stash_reminder
     echo ""
-    echo "Appuyez sur Entrée pour continuer..."
-    read -r
   fi
 else
   BORNE_UPDATED=false
