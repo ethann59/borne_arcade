@@ -295,7 +295,7 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         """
         # Détermine le nom et l'extension du fichier de test
         test_filenames = {
-            "java": "Tests.java",
+            "java": "tests/Tests.java",
             "python": "test.py",
             "lua": "test.lua",
             "javascript": "test.js",
@@ -304,7 +304,18 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         
         test_filename = test_filenames.get(language, "test.txt")
         test_path = game_path / test_filename
+        test_path.parent.mkdir(parents=True, exist_ok=True)
         cleaned_tests = self._strip_code_fences(tests)
+
+        # Nettoie l'ancien emplacement pour éviter de casser la compilation des jeux Java.
+        if language == "java":
+            legacy_test_path = game_path / "Tests.java"
+            if legacy_test_path.exists():
+                try:
+                    legacy_test_path.unlink()
+                    self.log(f"Ancien test Java supprimé : {legacy_test_path}")
+                except Exception as e:
+                    self.log(f"Impossible de supprimer {legacy_test_path} : {e}")
         
         try:
             with open(test_path, "w", encoding="utf-8") as f:
