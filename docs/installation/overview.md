@@ -6,7 +6,7 @@ Cette section décrit comment installer et configurer l'environnement de la born
 
 ### Système d'exploitation
 
-- Linux (Ubuntu 20.04+ recommandé)
+- Raspberry Pi OS (64-bit) recommandé pour la compatibilité avec les jeux et les dépendances.
 - Accès root ou sudo pour certaines installations
 
 ### Logiciels requis
@@ -50,7 +50,6 @@ love --version  # Vérifier : Love2D 11.x
 ### 1. Cloner le projet
 
 ```bash
-cd ~/Bureau/Bureau/IUT/3eme\ année/Travail/SAé/SAE\ Maintenance/
 git clone <url-du-repo> borne_arcade
 cd borne_arcade
 ```

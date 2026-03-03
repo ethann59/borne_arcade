@@ -136,11 +136,7 @@ Error: Could not find or load main class Main
    kill -9 PID
    ```
 
-3. **Réduire la qualité graphique**
-   
-   Éditer les paramètres du jeu (si disponible)
-
-4. **Vérifier la température**
+3. **Vérifier la température**
    ```bash
    # Si disponible
    sensors
@@ -496,15 +492,6 @@ nslookup google.com
 
 # Ping
 ping 10.22.28.190
-```
-
-### Proxy
-
-Si derrière un proxy :
-
-```bash
-export http_proxy="http://proxy.iut.fr:3128"
-export https_proxy="http://proxy.iut.fr:3128"
 ```
 
 ## 📝 Logs et diagnostic
