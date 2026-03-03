@@ -1,4 +1,5 @@
-CursedWare - AERNOUTS Fabien/VERBRUGGHE Alexi/LINEZ Guillaume/KHALIL Mehdi - 2022
+CursedWare - AERNOUTS Fabien/VERBRUGGHE Alexi
+/LINEZ Guillaume/KHALIL Mehdi - 2022
 
 Le célébre jeu "WarioWare" remixé à
 la sauce de l'iut. Défiez les différents
