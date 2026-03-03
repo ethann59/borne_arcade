@@ -11,6 +11,8 @@ analyse leur code source et génère :
 
 import json
 import os
+import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -24,6 +26,7 @@ class GameAnalyzer:
     # Dossier racine du projet
     PROJECT_ROOT = Path(__file__).parent
     GAMES_DIR = PROJECT_ROOT / "projet"
+    MKDOCS_GAMES_DIR = PROJECT_ROOT / "docs" / "jeux"
     
     # Jeux à exclure
     EXCLUDED_GAMES = {"Galad-Scott"}
@@ -191,7 +194,6 @@ Génère une documentation au format Markdown qui inclut :
 3. **Installation et dépendances** : Comment installer et lancer le jeu
 4. **Utilisation** : Commandes, contrôles de jeu
 5. **Structure des fichiers** : Organisation du code
-6. **Points d'amélioration** : Suggestions d'évolution
 
 Réponds UNIQUEMENT avec le contenu Markdown, sans préambule."""
 
@@ -300,15 +302,67 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
             "c": "test.c",
         }
         
-        test_filename = test_filenames.get(language, "test_ai.txt")
+        test_filename = test_filenames.get(language, "test.txt")
         test_path = game_path / test_filename
+        cleaned_tests = self._strip_code_fences(tests)
         
         try:
             with open(test_path, "w", encoding="utf-8") as f:
-                f.write(tests)
+                f.write(cleaned_tests)
             self.log(f"Tests sauvegardés : {test_path}")
         except Exception as e:
             self.log(f"Erreur lors de la sauvegarde des tests : {e}")
+
+    def _strip_code_fences(self, content: str) -> str:
+        """
+        Supprime les fences Markdown éventuels autour du code généré.
+
+        Gère des formats comme :
+        - ```python\n...\n```
+        - ```java\n...\n```
+        """
+        text = content.strip()
+
+        # Cas 1: tout le contenu est dans un unique bloc fenced.
+        if text.startswith("```") and text.endswith("```"):
+            lines = text.splitlines()
+            if len(lines) >= 2:
+                return "\n".join(lines[1:-1]).strip() + "\n"
+
+        # Cas 2: on extrait le premier bloc fenced trouvé.
+        match = re.search(r"```[a-zA-Z0-9_+-]*\n(.*?)\n```", text, flags=re.DOTALL)
+        if match:
+            return match.group(1).strip() + "\n"
+
+        return content
+
+    def copy_docs_to_mkdocs(self, game_names: List[str]) -> None:
+        """
+        Copie les documentations générées vers docs/jeux pour MkDocs.
+
+        Args:
+            game_names: Liste des jeux à copier
+        """
+        if not self.MKDOCS_GAMES_DIR.exists():
+            self.log(f"Dossier MkDocs introuvable : {self.MKDOCS_GAMES_DIR}")
+            return
+
+        copied_count = 0
+        for game_name in game_names:
+            src_doc = self.GAMES_DIR / game_name / "DOCUMENTATION.md"
+            if not src_doc.exists():
+                self.log(f"Documentation absente pour {game_name} : {src_doc}")
+                continue
+
+            dest_doc = self.MKDOCS_GAMES_DIR / f"{game_name}.md"
+            try:
+                shutil.copy2(src_doc, dest_doc)
+                copied_count += 1
+                self.log(f"Doc copiée vers MkDocs : {dest_doc}")
+            except Exception as e:
+                self.log(f"Erreur de copie vers MkDocs pour {game_name} : {e}")
+
+        self.log(f"Copie vers MkDocs terminée : {copied_count}/{len(game_names)} fichiers")
     
     def process_game(self, game_name: str) -> Tuple[bool, str]:
         """
@@ -399,6 +453,10 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         
         print(f"\nTotal : {success_count}/{len(games)} jeux traités avec succès")
 
+        # Copie les documentations générées vers MkDocs
+        successful_games = [name for name, (success, _) in results.items() if success]
+        self.copy_docs_to_mkdocs(successful_games)
+
 
 def main():
     """Point d'entrée principal."""
@@ -440,6 +498,8 @@ def main():
         success, message = analyzer.process_game(args.game)
         status = "Succès" if success else "Échec"
         print(f"{status}: {message}")
+        if success:
+            analyzer.copy_docs_to_mkdocs([args.game])
     else:
         analyzer.process_all_games()
 
