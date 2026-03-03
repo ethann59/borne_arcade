@@ -1,0 +1,41 @@
+# Configuration du générateur de documentation et tests
+# Ce fichier est optionnel - les valeurs par défaut fonctionnent sans lui
+
+[ollama]
+# URL du serveur Ollama
+base_url = http://10.22.28.190:11434
+
+# Modèle par défaut à utiliser
+default_model = gemma2:latest
+
+# Timeout en secondes pour les requêtes
+timeout = 120
+
+[generation]
+# Options de génération pour la documentation
+doc_temperature = 0.7
+doc_max_tokens = 2000
+
+# Options de génération pour les tests
+test_temperature = 0.5
+test_max_tokens = 2000
+
+# Nombre maximum de fichiers à analyser par jeu
+max_files_per_game = 20
+
+# Nombre maximum de lignes par fichier
+max_lines_per_file = 500
+
+[files]
+# Jeux à exclure (séparés par des virgules)
+excluded_games = Galad-Scott
+
+# Nom du fichier de documentation généré
+doc_filename = DOCUMENTATION_AI.md
+
+[output]
+# Afficher les messages de progression
+verbose = true
+
+# Afficher le détail des prompts envoyés à l'IA
+show_prompts = false
