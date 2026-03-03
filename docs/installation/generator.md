@@ -18,7 +18,8 @@ Le générateur nécessite un accès à un serveur Ollama.
 
 #### Option A : Serveur centralisé (IUT)
 
-Par défaut, le générateur utilise le serveur IUT :
+Par défaut, le générateur utilise le serveur IUT.
+Il est accessible à l'adresse suivante que sur le réseau de l'IUT  donc assurez-vous d'être connecté au réseau de l'IUT pour y accéder :
 
 ```
 http://10.22.28.190:11434
