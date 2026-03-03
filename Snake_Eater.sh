@@ -14,4 +14,5 @@ fi
 xdotool mousemove 1280 1024
 cd projet/Snake_Eater
 touch highscore
-java -cp .:../..:"$MG2D_CP" Snake_Eater
+JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
+java $JAVA_RENDER_OPTS -cp .:../..:"$MG2D_CP" Snake_Eater

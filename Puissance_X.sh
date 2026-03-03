@@ -13,7 +13,8 @@ fi
 
 xdotool mousemove 1280 1024
 cd projet/Puissance_X
-java -cp .:../..:"$MG2D_CP" -Dsun.java2d.pmoffscreen=false Main
+JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
+java $JAVA_RENDER_OPTS -cp .:../..:"$MG2D_CP" Main
 
 # -Dsun.java2d.pmoffscreen=false : Améliore les performances sur les système Unix utilisant X11 (donc Raspbian est concerné).
 # -Dsun.java2d.opengl=true : Utilise OpenGL (peut améliorer les performances).

@@ -143,7 +143,8 @@ echo "╚═══════════════════════�
 echo "Veuillez patienter..."
 echo ""
 
-java -cp .:"$MG2D_CP" Main
+JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
+java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
