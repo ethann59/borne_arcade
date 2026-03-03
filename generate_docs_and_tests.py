@@ -37,7 +37,7 @@ class GameAnalyzer:
         "javascript": [".js", ".ts"],
     }
     
-    def __init__(self, model: str = "gemma2:latest", verbose: bool = True):
+    def __init__(self, model: str = "gemma3:latest", verbose: bool = True):
         """
         Initialise l'analyseur.
         
@@ -48,6 +48,33 @@ class GameAnalyzer:
         self.ollama = OllamaWrapper()
         self.model = model
         self.verbose = verbose
+
+    def ensure_model_available(self) -> bool:
+        """
+        Vérifie que le modèle demandé est installé sur Ollama.
+
+        Returns:
+            True si le modèle est disponible, False sinon.
+        """
+        try:
+            models = self.ollama.list_models()
+        except Exception as e:
+            print(f"[ERREUR] Impossible de récupérer la liste des modèles Ollama : {e}")
+            return False
+
+        available_models = {m.name for m in models}
+        if self.model in available_models:
+            return True
+
+        print(f"[ERREUR] Modèle introuvable : {self.model}")
+        if available_models:
+            print("Modèles disponibles :")
+            for name in sorted(available_models):
+                print(f"  - {name}")
+        else:
+            print("Aucun modèle installé sur Ollama.")
+        print(f"Installe le modèle avec : ollama pull {self.model}")
+        return False
         
     def log(self, message: str) -> None:
         """Affiche un message si verbose est activé."""
@@ -247,7 +274,7 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
             game_path: Chemin vers le dossier du jeu
             documentation: Contenu de la documentation
         """
-        doc_path = game_path / "DOCUMENTATION_AI.md"
+        doc_path = game_path / "DOCUMENTATION.md"
         try:
             with open(doc_path, "w", encoding="utf-8") as f:
                 f.write(documentation)
@@ -266,11 +293,11 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         """
         # Détermine le nom et l'extension du fichier de test
         test_filenames = {
-            "java": "TestsAI.java",
-            "python": "test_ai.py",
-            "lua": "test_ai.lua",
-            "javascript": "test_ai.js",
-            "c": "test_ai.c",
+            "java": "Tests.java",
+            "python": "test.py",
+            "lua": "test.lua",
+            "javascript": "test.js",
+            "c": "test.c",
         }
         
         test_filename = test_filenames.get(language, "test_ai.txt")
@@ -340,6 +367,10 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
             print("[ERREUR] Le serveur Ollama n'est pas accessible.")
             print("Veuillez démarrer Ollama avec : ollama serve")
             return
+
+        # Vérifie que le modèle demandé est disponible
+        if not self.ensure_model_available():
+            return
         
         self.log(f"Serveur Ollama OK - Modèle utilisé : {self.model}")
         
@@ -378,8 +409,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="gemma2:latest",
-        help="Modèle Ollama à utiliser (défaut: gemma2:latest)"
+        default="gemma3:latest",
+        help="Modèle Ollama à utiliser (défaut: gemma3:latest)"
     )
     parser.add_argument(
         "--game",
@@ -395,6 +426,14 @@ def main():
     
     # Crée l'analyseur
     analyzer = GameAnalyzer(model=args.model, verbose=not args.quiet)
+
+    # Vérifie les prérequis Ollama (serveur + modèle)
+    if not analyzer.ollama.is_server_running():
+        print("[ERREUR] Le serveur Ollama n'est pas accessible.")
+        print("Veuillez démarrer Ollama avec : ollama serve")
+        sys.exit(1)
+    if not analyzer.ensure_model_available():
+        sys.exit(1)
     
     # Traite soit un jeu spécifique, soit tous les jeux
     if args.game:
