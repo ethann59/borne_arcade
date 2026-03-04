@@ -14,9 +14,9 @@ La borne d'arcade contient 14 jeux développés dans différents langages.
 | [JavaSpace](JavaSpace.md) | Java | MG2D | ✅ |
 | [Kowasu_Renga](Kowasu_Renga.md) | Java | MG2D | ✅ |
 | [Minesweeper](Minesweeper.md) | Java | MG2D | ✅ |
-| [OsuTile](OsuTile.md) | Lua | Love2D | ✅ |
-| [PianoTile](PianoTile.md) | Lua | Love2D | ✅ |
-| [Pong](Pong.md) | Python | Pygame | ✅ |
+| [OsuTile](OsuTile.md) | Python | Pygame | ✅ |
+| [PianoTile](PianoTile.md) | Python | Pygame | ✅ |
+| [Pong](Pong.md) | Java | MG2D | ✅ |
 | [Puissance_X](Puissance_X.md) | Java | MG2D | ✅ |
 | [Snake_Eater](Snake_Eater.md) | Java | MG2D | ✅ |
 | [TronGame](TronGame.md) | Python | Pygame | ✅ |
@@ -130,8 +130,8 @@ Chaque documentation inclut :
 
 - **Total** : 14 jeux opérationnels
 - **Java** : 9 jeux (64%)
-- **Python** : 3 jeux (21%)
-- **Lua** : 3 jeux (21%)
+- **Python** : 4 jeux (29%)
+- **Lua** : 1 jeu (7%)
 
 ## 🎯 High scores
 
