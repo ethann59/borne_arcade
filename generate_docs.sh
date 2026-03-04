@@ -8,6 +8,16 @@ echo "Générateur de Documentation et Tests IA"
 echo "=========================================="
 echo ""
 
+RUN_TESTS="${RUN_TESTS:-true}"
+TEST_FLAG=""
+if [ "$RUN_TESTS" = "true" ]; then
+    TEST_FLAG="--run-tests"
+    echo "Mode tests générés: ACTIVÉ"
+else
+    echo "Mode tests générés: DÉSACTIVÉ (RUN_TESTS=false)"
+fi
+echo ""
+
 # Vérifie que Python est installé
 if ! command -v python3 &> /dev/null; then
     echo "ERREUR: Python 3 n'est pas installé"
@@ -26,11 +36,11 @@ fi
 if [ $# -eq 0 ]; then
     echo "Traitement de tous les jeux..."
     echo ""
-    python3 generate_docs_and_tests.py
+    python3 generate_docs_and_tests.py $TEST_FLAG
 else
     echo "Traitement du jeu: $1"
     echo ""
-    python3 generate_docs_and_tests.py --game "$1"
+    python3 generate_docs_and_tests.py --game "$1" $TEST_FLAG
 fi
 
 echo ""

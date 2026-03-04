@@ -22,7 +22,7 @@ La borne d'arcade contient 14 jeux développés dans différents langages.
 | [TronGame](TronGame.md) | Python | Pygame | ✅ |
 
 !!! note "Note"
-    Galad-Scott est exclu de la génération automatique de documentation car il dispose déjà de sa propre documentation.
+    Galad-Scott est exclu de la génération automatique car il dispose déjà de sa documentation dédiée : [Documentation Galad-Scott](https://ethann59.github.io/Galad-Scott/).
 
 ## 🎮 Catégories de jeux
 
@@ -88,8 +88,8 @@ Exemple :
 ```
 
 Cela crée :
-- `projet/JavaSpace/DOCUMENTATION_AI.md` : Documentation complète
-- `projet/JavaSpace/TestsAI.java` : Tests unitaires
+- `projet/JavaSpace/DOCUMENTATION.md` : Documentation générée
+- `projet/JavaSpace/tests/Tests.java` (Java) ou `test.py` / `test.lua` selon le langage
 
 ## 🔍 Accéder aux documentations
 

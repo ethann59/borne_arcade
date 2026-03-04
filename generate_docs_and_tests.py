@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -40,7 +41,7 @@ class GameAnalyzer:
         "javascript": [".js", ".ts"],
     }
     
-    def __init__(self, model: str = "gemma3:latest", verbose: bool = True):
+    def __init__(self, model: str = "gemma3:latest", verbose: bool = True, run_tests: bool = False):
         """
         Initialise l'analyseur.
         
@@ -51,6 +52,7 @@ class GameAnalyzer:
         self.ollama = OllamaWrapper()
         self.model = model
         self.verbose = verbose
+        self.run_tests = run_tests
 
     def ensure_model_available(self) -> bool:
         """
@@ -159,8 +161,39 @@ class GameAnalyzer:
                 return content
         except Exception as e:
             return f"Erreur de lecture : {e}"
+
+    def read_game_metadata(self, game_path: Path) -> Dict[str, str]:
+        """
+        Lit les métadonnées du jeu (description et touches borne).
+
+        Args:
+            game_path: Dossier du jeu
+
+        Returns:
+            Dictionnaire contenant description/touches
+        """
+        def read_optional_file(filename: str, max_chars: int = 3000) -> str:
+            file_path = game_path / filename
+            if not file_path.exists():
+                return ""
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="replace").strip()
+                return content[:max_chars]
+            except Exception:
+                return ""
+
+        return {
+            "description": read_optional_file("description.txt"),
+            "controls": read_optional_file("bouton.txt"),
+        }
     
-    def generate_documentation(self, game_name: str, language: str, source_files: List[Path]) -> str:
+    def generate_documentation(
+        self,
+        game_name: str,
+        language: str,
+        source_files: List[Path],
+        metadata: Dict[str, str],
+    ) -> str:
         """
         Génère la documentation d'un jeu en utilisant l'IA.
         
@@ -176,6 +209,13 @@ class GameAnalyzer:
         
         # Prépare le contexte du code
         code_context = f"# Jeu: {game_name}\n# Langage: {language}\n\n"
+
+        if metadata.get("description"):
+            code_context += "## Description du jeu (description.txt)\n"
+            code_context += metadata["description"] + "\n\n"
+        if metadata.get("controls"):
+            code_context += "## Touches et contrôles borne (bouton.txt)\n"
+            code_context += metadata["controls"] + "\n\n"
         
         for file_path in source_files[:10]:  # Limite à 10 fichiers pour ne pas saturer
             relative_path = file_path.relative_to(self.GAMES_DIR)
@@ -183,17 +223,24 @@ class GameAnalyzer:
             code_context += f"\n## Fichier: {relative_path}\n```{language}\n{content}\n```\n\n"
         
         # Construit le prompt
-        prompt = f"""Tu es un expert en documentation technique. Analyse le code suivant d'un jeu d'arcade et génère une documentation complète en français.
+        prompt = f"""Tu es un expert en documentation technique de jeux pour BORNE D'ARCADE.
+    Analyse le code et les métadonnées suivantes puis génère une documentation concise et factuelle en français.
 
 {code_context}
 
-Génère une documentation au format Markdown qui inclut :
+    Contraintes importantes :
+    - Ce jeu est utilisé sur une borne d'arcade (joysticks + boutons), adapte le vocabulaire à ce contexte.
+    - Réutilise explicitement les informations de description.txt et bouton.txt quand elles existent.
+    - N'invente pas de fichiers, de frameworks, ni de mécaniques non visibles dans le contexte.
+    - N'encapsule PAS toute la réponse dans un bloc ```markdown.
 
-1. **Description du jeu** : Objectif, règles, gameplay
-2. **Architecture technique** : Structure du code, classes/modules principaux
-3. **Installation et dépendances** : Comment installer et lancer le jeu
-4. **Utilisation** : Commandes, contrôles de jeu
-5. **Structure des fichiers** : Organisation du code
+    Génère une MINI documentation au format Markdown avec exactement ces sections :
+
+    1. **Description** (objectif + contexte borne)
+    2. **Stack technique** (langage, lib principale)
+    3. **Structure principale** (fichiers/modules clés réellement présents)
+    4. **Installation / lancement** (priorité au script `.sh` à la racine s'il existe)
+    5. **Contrôles borne** (à partir de bouton.txt, sinon "à vérifier")
 
 Réponds UNIQUEMENT avec le contenu Markdown, sans préambule."""
 
@@ -203,7 +250,7 @@ Réponds UNIQUEMENT avec le contenu Markdown, sans préambule."""
                 prompt=prompt,
                 options={"temperature": 0.7, "num_predict": 2000}
             )
-            return result.response
+            return self._sanitize_documentation_markdown(result.response)
         except Exception as e:
             self.log(f"Erreur lors de la génération de documentation : {e}")
             return f"# Documentation {game_name}\n\nErreur de génération : {e}"
@@ -347,6 +394,123 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
 
         return content
 
+    def _sanitize_documentation_markdown(self, content: str) -> str:
+        """
+        Nettoie les artefacts fréquents de sortie IA dans les docs markdown.
+
+        - Supprime un éventuel wrapper global ```markdown ... ```
+        - Supprime certaines lignes parasites en tête de document
+        """
+        text = content.strip()
+
+        # Supprime un wrapper markdown global (sans toucher aux blocs internes)
+        if text.startswith("```markdown") and text.endswith("```"):
+            lines = text.splitlines()
+            if len(lines) >= 2:
+                text = "\n".join(lines[1:-1]).strip()
+
+        lines = text.splitlines()
+        cleaned: List[str] = []
+        for idx, line in enumerate(lines):
+            normalized = line.strip().lower()
+            if idx == 0 and (
+                "hollowed out" in normalized
+                or "initialized job response" in normalized
+                or normalized == "```markdown"
+            ):
+                continue
+            cleaned.append(line)
+
+        return "\n".join(cleaned).rstrip() + "\n"
+
+    def run_generated_tests(self, game_path: Path, language: str) -> Tuple[bool, str]:
+        """
+        Exécute (ou valide) les tests générés selon le langage.
+
+        Returns:
+            (succès, message)
+        """
+        try:
+            if language == "python":
+                test_file = game_path / "test.py"
+                if not test_file.exists():
+                    return False, "test.py introuvable"
+
+                if shutil.which("pytest"):
+                    result = subprocess.run(
+                        ["pytest", "-q", str(test_file.name)],
+                        cwd=game_path,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        return True, "pytest OK"
+                    stderr_excerpt = (result.stdout + "\n" + result.stderr).strip()[:220]
+                    return False, f"pytest en échec: {stderr_excerpt}"
+
+                # Fallback minimal si pytest absent
+                result = subprocess.run(
+                    ["python3", "-m", "py_compile", str(test_file.name)],
+                    cwd=game_path,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    return True, "py_compile OK (pytest absent)"
+                return False, f"py_compile en échec: {result.stderr.strip()[:220]}"
+
+            if language == "lua":
+                test_file = game_path / "test.lua"
+                if not test_file.exists():
+                    return False, "test.lua introuvable"
+
+                if shutil.which("busted"):
+                    result = subprocess.run(
+                        ["busted", str(test_file.name)],
+                        cwd=game_path,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        return True, "busted OK"
+                    stderr_excerpt = (result.stdout + "\n" + result.stderr).strip()[:220]
+                    return False, f"busted en échec: {stderr_excerpt}"
+
+                if shutil.which("luac"):
+                    result = subprocess.run(
+                        ["luac", "-p", str(test_file.name)],
+                        cwd=game_path,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        return True, "luac -p OK (busted absent)"
+                    return False, f"luac en échec: {result.stderr.strip()[:220]}"
+
+                return False, "ni busted ni luac disponibles"
+
+            if language == "java":
+                test_file = game_path / "tests" / "Tests.java"
+                if not test_file.exists():
+                    return False, "tests/Tests.java introuvable"
+
+                if not shutil.which("javac"):
+                    return False, "javac introuvable"
+
+                result = subprocess.run(
+                    ["javac", str(test_file)],
+                    cwd=game_path,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode == 0:
+                    return True, "Compilation Java des tests OK"
+                return False, f"Compilation Java en échec: {result.stderr.strip()[:220]}"
+
+            return False, f"Langage non supporté pour exécution des tests: {language}"
+        except Exception as e:
+            return False, f"Erreur exécution tests: {e}"
+
     def copy_docs_to_mkdocs(self, game_names: List[str]) -> None:
         """
         Copie les documentations générées vers docs/jeux pour MkDocs.
@@ -411,15 +575,22 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         
         self.log(f"{len(source_files)} fichiers sources trouvés")
         
+        metadata = self.read_game_metadata(game_path)
+
         # Génère la documentation
-        documentation = self.generate_documentation(game_name, language, source_files)
+        documentation = self.generate_documentation(game_name, language, source_files, metadata)
         self.save_documentation(game_path, documentation)
         
         # Génère les tests
         tests = self.generate_tests(game_name, language, source_files)
         self.save_tests(game_path, language, tests)
+
+        test_status = "tests non exécutés"
+        if self.run_tests:
+            tests_ok, tests_msg = self.run_generated_tests(game_path, language)
+            test_status = f"tests: {'OK' if tests_ok else 'ECHEC'} ({tests_msg})"
         
-        return True, f"Documentation et tests générés ({language})"
+        return True, f"Documentation et tests générés ({language}) - {test_status}"
     
     def process_all_games(self) -> None:
         """Traite tous les jeux du dossier projet."""
@@ -490,11 +661,16 @@ def main():
         action="store_true",
         help="Mode silencieux (moins de messages)"
     )
+    parser.add_argument(
+        "--run-tests",
+        action="store_true",
+        help="Exécuter/valider les tests générés juste après leur création"
+    )
     
     args = parser.parse_args()
     
     # Crée l'analyseur
-    analyzer = GameAnalyzer(model=args.model, verbose=not args.quiet)
+    analyzer = GameAnalyzer(model=args.model, verbose=not args.quiet, run_tests=args.run_tests)
 
     # Vérifie les prérequis Ollama (serveur + modèle)
     if not analyzer.ollama.is_server_running():

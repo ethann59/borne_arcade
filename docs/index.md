@@ -25,6 +25,8 @@ Chaque jeu dispose de sa propre documentation incluant :
 
 Consultez la section [Jeux](jeux/index.md) pour accéder aux documentations individuelles.
 
+La documentation dédiée de Galad-Scott est disponible ici : [https://ethann59.github.io/Galad-Scott/](https://ethann59.github.io/Galad-Scott/).
+
 ### Outils de développement
 
 - **[Wrapper Ollama](outils/ollama_wrapper.md)** : API Python pour interagir avec Ollama
