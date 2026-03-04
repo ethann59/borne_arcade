@@ -2,3 +2,7 @@
 mkdocs
 mkdocs-material
 pymdown-extensions
+
+# Dépendances Java (téléchargées automatiquement par run_tests.sh / generate_docs_and_tests.py)
+# - JUnit 5 Platform Console Standalone 1.11.4 → lib/junit-platform-console-standalone.jar
+#   Source : https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.11.4/

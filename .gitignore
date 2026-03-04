@@ -1,5 +1,8 @@
 *.pyc
 
+# Dépendances dev téléchargées automatiquement
+lib/
+
 # Galad Scott : on 
 /projet/Galad-Scott
 

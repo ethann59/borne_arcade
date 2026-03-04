@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -378,8 +379,15 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         Gère des formats comme :
         - ```python\n...\n```
         - ```java\n...\n```
+        - <garbage>```python\n...\n```  (artefact IA avec déchets avant le fence)
         """
         text = content.strip()
+
+        # Cas 0: du texte parasite avant le premier bloc fenced (ex: unicode IA).
+        # On cherche le premier ``` et on ne garde que le bloc fenced.
+        first_fence = text.find("```")
+        if first_fence > 0:
+            text = text[first_fence:].strip()
 
         # Cas 1: tout le contenu est dans un unique bloc fenced.
         if text.startswith("```") and text.endswith("```"):
@@ -393,6 +401,23 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
             return match.group(1).strip() + "\n"
 
         return content
+
+    def _ensure_junit_jar(self, junit_jar: Path) -> None:
+        """Télécharge le JAR JUnit 5 standalone si absent."""
+        JUNIT_URL = (
+            "https://repo1.maven.org/maven2/org/junit/platform/"
+            "junit-platform-console-standalone/1.11.4/"
+            "junit-platform-console-standalone-1.11.4.jar"
+        )
+        junit_jar.parent.mkdir(parents=True, exist_ok=True)
+        if self.verbose:
+            print(f"[INFO] JUnit 5 non trouvé, téléchargement depuis Maven Central...")
+        try:
+            urllib.request.urlretrieve(JUNIT_URL, str(junit_jar))
+            if self.verbose:
+                print(f"[INFO] JUnit 5 téléchargé dans {junit_jar.relative_to(self.PROJECT_ROOT)}")
+        except Exception as e:
+            print(f"[WARN] Échec du téléchargement de JUnit 5 : {e}")
 
     def _sanitize_documentation_markdown(self, content: str) -> str:
         """
@@ -497,15 +522,51 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
                 if not shutil.which("javac"):
                     return False, "javac introuvable"
 
+                # Classpath : JUnit 5 + MG2D ; Sourcepath : code du jeu + racine
+                junit_jar = self.PROJECT_ROOT / "lib" / "junit-platform-console-standalone.jar"
+                mg2d_jar = self.PROJECT_ROOT / "MG2D" / "mg2d.jar"
+
+                # Télécharger JUnit si absent
+                if not junit_jar.exists():
+                    self._ensure_junit_jar(junit_jar)
+
+                cp_parts = []
+                if junit_jar.exists():
+                    cp_parts.append(str(junit_jar))
+                if mg2d_jar.exists():
+                    cp_parts.append(str(mg2d_jar))
+
+                sourcepath_parts = [
+                    str(game_path),
+                    str(game_path / "src"),
+                    str(self.PROJECT_ROOT),
+                ]
+
+                cmd = ["javac"]
+                if cp_parts:
+                    cmd += ["-cp", ":".join(cp_parts)]
+                cmd += ["-sourcepath", ":".join(sourcepath_parts)]
+                cmd.append(str(test_file))
+
                 result = subprocess.run(
-                    ["javac", str(test_file)],
+                    cmd,
                     cwd=game_path,
                     capture_output=True,
                     text=True,
                 )
+
+                # Nettoie les .class générés
+                for class_file in game_path.rglob("*.class"):
+                    class_file.unlink(missing_ok=True)
+
                 if result.returncode == 0:
                     return True, "Compilation Java des tests OK"
-                return False, f"Compilation Java en échec: {result.stderr.strip()[:220]}"
+                # Filtre les warnings container du stderr
+                err = "\n".join(
+                    l for l in result.stderr.splitlines()
+                    if "os,container" not in l
+                ).strip()[:220]
+                return False, f"Compilation Java en échec: {err}"
 
             return False, f"Langage non supporté pour exécution des tests: {language}"
         except Exception as e:
