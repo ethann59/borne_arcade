@@ -2,39 +2,32 @@
 
 ## Description
 
-`CursedWare` est une collection de mini-jeux en Lua/LÖVE, inspirée de WarioWare, avec score global et rythme rapide.
+CursedWare est un clone de WarioWare développé par AERNOUTS, VERBRUGGHE, LINEZ et KHALIL (2022). Le jeu propose une série de mini-jeux rapides à enchaîner avant le temps imparti. Jouable à 2 joueurs, l'objectif est d'obtenir le meilleur score en réussissant un maximum de mini-jeux.
 
 ## Stack technique
 
-- Langage : Lua
-- Framework : LÖVE (Love2D)
-- Entrée principale : `projet/CursedWare/main.lua`
+- **Langage :** Lua
+- **Bibliothèque principale :** LÖVE2D (Love2D)
+- **Autres :** Instance, Classic (bibliothèques Lua pour LÖVE2D)
 
 ## Structure principale
 
-- `projet/CursedWare/main.lua` : configuration de la fenêtre et boucle LÖVE
-- `projet/CursedWare/src/classes/` : primitives/classes utilitaires
-- `projet/CursedWare/src/libs/` : services utilitaires (input, tween, timing…)
-- `projet/CursedWare/src/screens/` : écrans du jeu (title, sélection, pause, score…)
-- `projet/CursedWare/minigames/*/game.lua` : mini-jeux
-- `projet/CursedWare/assets/` : polices, sons, musiques, images
+- `main.lua` : Point d'entrée — initialisation, boucle de jeu, gestion des événements
+- `conf.lua` : Configuration LÖVE2D (taille fenêtre, etc.)
+- `src/` : Code source des classes (Vector2, Color, Rect, Image, Quad, etc.)
+- `minigames/` : Dossier contenant les mini-jeux individuels
+- `assets/` : Ressources graphiques et sonores
 
 ## Installation / lancement
-
-Depuis la racine du projet :
 
 ```bash
 ./CursedWare.sh
 ```
 
-ou manuellement :
+Le script `CursedWare.sh` à la racine du projet gère le lancement via LÖVE2D.
 
-```bash
-cd projet/CursedWare
-love .
-```
+## Contrôles borne
 
-## Contrôles
-
-Les contrôles varient selon le mini-jeu actif.
-La configuration borne de base est stockée dans `projet/CursedWare/bouton.txt`.
+- **Joystick :** Aucun mouvement dédié
+- **Bouton Interagir :** Action dans les mini-jeux
+- **Bouton Retour :** Aucun

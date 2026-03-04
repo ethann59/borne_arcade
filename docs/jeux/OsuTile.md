@@ -2,50 +2,34 @@
 
 ## Description
 
-`OsuTile` est un jeu de rythme Python inspiré d’osu!mania : le joueur valide des notes sur des lanes en suivant la musique.
+OsuTile est un jeu de rythme développé par Thimoté Bois (2025). Le joueur doit toucher le plus de notes possible en appuyant sur les bons boutons au bon moment, comme dans un jeu de type osu!.
 
 ## Stack technique
 
-- Langage : Python
-- Moteur : Pygame
-- Entrée principale : `projet/OsuTile/main.py`
-
-## Particularité du projet
-
-Au lancement, `main.py` génère automatiquement les maps Python (`projet/OsuTile/maps/*.py`) à partir des beatmaps `.osu` présentes dans `projet/OsuTile/beatmaps/` via `projet/OsuTile/tools/export_map.py`.
+- **Langage :** Python
+- **Bibliothèque principale :** Pygame
 
 ## Structure principale
 
-- `projet/OsuTile/main.py` : bootstrap du jeu + génération des maps
-- `projet/OsuTile/menu.py` : menu
-- `projet/OsuTile/game.py` : gameplay
-- `projet/OsuTile/map_parser.py` : parsing des beatmaps
-- `projet/OsuTile/tile.py` : logique des notes/tiles
-- `projet/OsuTile/assets/` : musique
-- `projet/OsuTile/beatmaps/` : fichiers `.osu`
+- `main.py` : Point d'entrée du jeu
+- `src/` : Code source (logique du jeu, rendu, gestion audio)
+- `assets/` : Ressources (musiques, images, sons)
+- `description.txt` : Description du jeu pour la borne
+- `bouton.txt` : Configuration des touches borne
 
 ## Installation / lancement
-
-Depuis la racine du projet :
 
 ```bash
 ./OsuTile.sh
 ```
 
-ou manuellement :
+Le script `OsuTile.sh` à la racine du projet gère le lancement.
 
-```bash
-cd projet/OsuTile
-python3 main.py
-```
+## Contrôles borne
 
-## Contrôles
-
-D’après `projet/OsuTile/bouton.txt` :
-
-- Lane 1 : `R`
-- Lane 2 : `T`
-- Lane 3 : `Y`
-- Pause : `F`
-- Sélectionner / reprendre : `G`
-- Quitter : `H`
+- **Lane 1 :** Bouton R
+- **Lane 2 :** Bouton T
+- **Lane 3 :** Bouton Y
+- **Pause :** Bouton F
+- **Sélectionner / Reprendre :** Bouton G
+- **Quitter :** Bouton H

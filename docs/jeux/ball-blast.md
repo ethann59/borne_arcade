@@ -2,42 +2,31 @@
 
 ## Description
 
-`ball-blast` est un jeu d’arcade en Python où le joueur détruit des boules pour augmenter son score.
+Ball Blast est un jeu arcade de destruction développé par Arnaud Wissocq et Justin Fontaine (2025). Le joueur contrôle un canon et doit détruire des boules qui tombent du haut de l'écran pour obtenir le meilleur score possible.
 
 ## Stack technique
 
-- Langage : Python
-- Moteur : Pygame
-- Entrée principale : `projet/ball-blast/src/__main__.py`
+- **Langage :** Python
+- **Bibliothèque principale :** Pygame
 
 ## Structure principale
 
-- `projet/ball-blast/src/game.py` : boucle et logique de partie
-- `projet/ball-blast/src/menu.py` : menu principal
-- `projet/ball-blast/src/player.py` : joueur/canon
-- `projet/ball-blast/src/ball.py` : comportement des boules
-- `projet/ball-blast/src/bullet.py` : projectiles
-- `projet/ball-blast/src/constantes.py` : constantes globales
-- `projet/ball-blast/assets/` : images et sons
+- `src/__main__.py` : Point d'entrée du jeu
+- `src/` : Code source principal
+- `assets/` : Ressources graphiques et sonores
+- `description.txt` : Description du jeu pour la borne
+- `bouton.txt` : Configuration des touches borne
 
 ## Installation / lancement
-
-Depuis la racine du projet :
 
 ```bash
 ./ball-blast.sh
 ```
 
-ou manuellement :
+Le script `ball-blast.sh` à la racine du projet gère le lancement.
 
-```bash
-cd projet/ball-blast
-python3 ./src
-```
+## Contrôles borne
 
-## Contrôles
-
-D’après `projet/ball-blast/bouton.txt` :
-
-- Déplacement : gauche / droite
-- Les autres actions sont gérées dans le jeu/menu.
+- **Joystick gauche/droite :** Déplacer le canon
+- **Bouton Interagir :** Aucun
+- **Bouton Retour :** Aucun
