@@ -10,6 +10,31 @@ cd "$SCRIPT_DIR" || exit 1
 export BORNE_DIR="$SCRIPT_DIR"
 GALAD_SCOTT_DIR="$BORNE_DIR/projet/Galad-Scott"
 
+sync_system_time_runtime() {
+  echo "Synchronisation de l'heure de la borne..."
+
+  if command -v timedatectl >/dev/null 2>&1; then
+    timedatectl set-ntp true >/dev/null 2>&1 || sudo -n timedatectl set-ntp true >/dev/null 2>&1 || true
+
+    for _ in {1..10}; do
+      if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo no)" = "yes" ]; then
+        echo "Heure synchronisée via NTP."
+        echo "Heure actuelle: $(date -Is)"
+        return 0
+      fi
+      sleep 1
+    done
+  fi
+
+  if command -v ntpdate >/dev/null 2>&1; then
+    ntpdate -u pool.ntp.org >/dev/null 2>&1 || sudo -n ntpdate -u pool.ntp.org >/dev/null 2>&1 || true
+  fi
+
+  echo "Heure actuelle: $(date -Is)"
+}
+
+sync_system_time_runtime
+
 java_artifacts_missing() {
   # Vérifie les classes Java du menu (racine)
   for src in "$BORNE_DIR"/*.java; do

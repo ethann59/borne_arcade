@@ -63,6 +63,37 @@ run_cmd() {
   fi
 }
 
+sync_system_time() {
+  echo "Synchronisation de l'heure système..."
+
+  if command -v timedatectl >/dev/null 2>&1; then
+    run_cmd timedatectl set-ntp true || run_cmd sudo timedatectl set-ntp true || true
+
+    if [ "$DRY_RUN" = true ]; then
+      echo "DRY-RUN: attente de la synchro NTP (timedatectl)"
+    else
+      for _ in {1..15}; do
+        if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo no)" = "yes" ]; then
+          echo "Heure synchronisée via NTP (timedatectl)."
+          break
+        fi
+        sleep 1
+      done
+    fi
+  fi
+
+  if [ "$DRY_RUN" = false ] && command -v timedatectl >/dev/null 2>&1; then
+    if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo no)" != "yes" ] && command -v ntpdate >/dev/null 2>&1; then
+      echo "NTP pas encore synchronisé — tentative one-shot via ntpdate."
+      ntpdate -u pool.ntp.org >/dev/null 2>&1 || sudo ntpdate -u pool.ntp.org >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if [ "$DRY_RUN" = false ]; then
+    echo "Heure actuelle: $(date -Is)"
+  fi
+}
+
 # Vérifier que le système est Debian/Ubuntu
 if ! command -v apt-get >/dev/null 2>&1; then
   echo "Erreur: apt-get non trouvé. Ce script est prévu pour Debian/Ubuntu."
@@ -96,6 +127,7 @@ fi
 if [[ "$ans" =~ ^[Yy]$ ]]; then
   run_cmd sudo apt-get update
   run_cmd sudo apt-get install -y "${PKGS[@]}"
+  sync_system_time
 else
   echo "Annulé par l'utilisateur."
   exit 0
