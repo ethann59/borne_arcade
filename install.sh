@@ -10,6 +10,7 @@ GIT_DIR="${GIT_DIR:-$HOME/git}"
 BORNE_REPO="${BORNE_REPO:-https://github.com/ethann59/borne_arcade.git}"
 GALAD_SCOTT_REPO="${GALAD_SCOTT_REPO:-https://github.com/ethann59/Galad-Scott.git}"
 AUTOSTART_DEST="$HOME/.config/autostart/borne.desktop"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY_RUN=false
 # Exécution sans intervention humaine par défaut
 NONINTERACTIVE=true
@@ -110,6 +111,18 @@ clone_or_update() {
   if [ -d "$dest/.git" ]; then
     echo "Mise à jour de $name dans $dest"
     run_cmd git -C "$dest" pull --rebase
+  elif [ "$name" = "borne_arcade" ] && [ -d "$SCRIPT_DIR/.git" ]; then
+    echo "Mise à jour du dépôt local borne_arcade dans $SCRIPT_DIR"
+    run_cmd git -C "$SCRIPT_DIR" pull --rebase
+
+    echo "Synchronisation des fichiers vers $dest"
+    run_cmd mkdir -p "$dest"
+    if command -v rsync >/dev/null 2>&1; then
+      run_cmd rsync -a --delete "$SCRIPT_DIR/" "$dest/"
+    else
+      run_cmd bash -lc "find \"$dest\" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +"
+      run_cmd cp -a "$SCRIPT_DIR/." "$dest/"
+    fi
   else
     echo "Clonage de $name dans $dest"
     run_cmd git clone "$url" "$dest"
