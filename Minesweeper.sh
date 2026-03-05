@@ -14,5 +14,5 @@ fi
 xdotool mousemove 1280 1024
 cd projet/Minesweeper
 touch highscore
-JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
+JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=true -Dsun.java2d.xrender=true -Dsun.java2d.pmoffscreen=false}"
 java $JAVA_RENDER_OPTS -cp .:../..:"$MG2D_CP" Minesweeper

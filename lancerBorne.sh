@@ -288,7 +288,7 @@ echo "╚═══════════════════════�
 echo "Veuillez patienter..."
 echo ""
 
-JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
+JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=true -Dsun.java2d.xrender=true -Dsun.java2d.pmoffscreen=false}"
 if [ "$FORCE_XWAYLAND_FOR_GAME" = "true" ]; then
   echo "Forçage du jeu en X11/Xwayland (compatibilité remapping Wayland)."
   GDK_BACKEND=x11 QT_QPA_PLATFORM=xcb SDL_VIDEODRIVER=x11 _JAVA_AWT_WM_NONREPARENTING=1 java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
