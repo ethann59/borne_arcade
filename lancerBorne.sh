@@ -1,6 +1,103 @@
 #!/bin/bash
 
-FORCE_XWAYLAND_FOR_GAME=false
+# === Keyboard Layout Configuration ===
+# Stratégies (par ordre de préférence) :
+#   Wayland : layout utilisateur ($HOME/.config/xkb/symbols/) + configuration du compositeur (labwc)
+#   X11     : setxkbmap avec racine XKB locale
+#   Fallback: avertissement
+
+install_xkb_layout_user() {
+  # Installe le fichier XKB borne dans le répertoire utilisateur de libxkbcommon (>= 1.0).
+  # Ce chemin est recherché par libxkbcommon avant /usr/share/X11/xkb, sans sudo.
+  local src="$1"
+  local user_xkb_dir="$HOME/.config/xkb/symbols"
+  local dest="$user_xkb_dir/borne"
+
+  mkdir -p "$user_xkb_dir"
+  if [ -f "$dest" ] && cmp -s "$src" "$dest" 2>/dev/null; then
+    return 0  # Déjà à jour
+  fi
+  cp "$src" "$dest" 2>/dev/null && echo "Layout XKB 'borne' installé dans $dest" || true
+}
+
+configure_labwc_keyboard() {
+  # Configure labwc (compositeur Wayland de Raspberry Pi OS / LXQt) pour utiliser
+  # le layout borne.  labwc recharge rc.xml sur réception de SIGHUP.
+  local layout="$1"
+  local variant="$2"
+  local labwc_dir="$HOME/.config/labwc"
+  local labwc_rc="$labwc_dir/rc.xml"
+  local labwc_env="$labwc_dir/environment"
+  local changed=false
+
+  mkdir -p "$labwc_dir"
+
+  # --- rc.xml : section <keyboard> ---
+  local layout_attr="layout=\"$layout\""
+  [ -n "$variant" ] && layout_attr="$layout_attr variant=\"$variant\""
+
+  if [ ! -f "$labwc_rc" ]; then
+    cat > "$labwc_rc" <<RCEOF
+<?xml version="1.0"?>
+<labwc_config>
+  <keyboard>
+    <default $layout_attr />
+  </keyboard>
+</labwc_config>
+RCEOF
+    changed=true
+    echo "labwc rc.xml créé : $labwc_rc"
+  else
+    if grep -q "layout=\\\"$layout\\\"" "$labwc_rc" 2>/dev/null; then
+      echo "labwc rc.xml déjà configuré pour layout '$layout'."
+    else
+      local tmp_rc
+      tmp_rc="$(mktemp)"
+      if grep -q '<keyboard>' "$labwc_rc" 2>/dev/null; then
+        # Remplacer une éventuelle balise <default .../> existante
+        sed '/<keyboard>/,/<\/keyboard>/{
+          s|<default[^/]*/[[:space:]]*>|<default '"$layout_attr"' />|
+        }' "$labwc_rc" > "$tmp_rc"
+        # Si aucune balise <default> n'existait, en ajouter une
+        if ! grep -q "layout=\\\"$layout\\\"" "$tmp_rc" 2>/dev/null; then
+          sed '/<keyboard>/a\    <default '"$layout_attr"' />' "$labwc_rc" > "$tmp_rc"
+        fi
+      else
+        # Pas de section <keyboard> — l'insérer avant </labwc_config>
+        sed 's|</labwc_config>|  <keyboard>\n    <default '"$layout_attr"' />\n  </keyboard>\n</labwc_config>|' "$labwc_rc" > "$tmp_rc"
+      fi
+      if ! cmp -s "$labwc_rc" "$tmp_rc" 2>/dev/null; then
+        cp "$tmp_rc" "$labwc_rc"
+        changed=true
+        echo "labwc rc.xml mis à jour : keyboard layout='$layout'"
+      fi
+      rm -f "$tmp_rc"
+    fi
+  fi
+
+  # --- environment : XKB_DEFAULT_* (fallback pour composants Wayland tiers) ---
+  local tmp_env
+  tmp_env="$(mktemp)"
+  if [ -f "$labwc_env" ]; then
+    grep -vE '^(XKB_DEFAULT_LAYOUT|XKB_DEFAULT_VARIANT)=' "$labwc_env" > "$tmp_env" 2>/dev/null || true
+  fi
+  echo "XKB_DEFAULT_LAYOUT=$layout" >> "$tmp_env"
+  [ -n "$variant" ] && echo "XKB_DEFAULT_VARIANT=$variant" >> "$tmp_env"
+
+  if ! cmp -s "$labwc_env" "$tmp_env" 2>/dev/null; then
+    cp "$tmp_env" "$labwc_env"
+    changed=true
+    echo "labwc environment mis à jour."
+  fi
+  rm -f "$tmp_env"
+
+  # Recharger labwc
+  if [ "$changed" = true ] && pgrep -x labwc >/dev/null 2>&1; then
+    pkill -SIGHUP labwc 2>/dev/null || true
+    echo "labwc rechargé (SIGHUP)."
+    sleep 0.5
+  fi
+}
 
 apply_keyboard_layout_runtime() {
   local script_dir
@@ -8,20 +105,32 @@ apply_keyboard_layout_runtime() {
   local target_layout="${TARGET_KEYBOARD_LAYOUT:-borne}"
   local fallback_layout="${FALLBACK_KEYBOARD_LAYOUT:-fr}"
   local effective_layout=""
+  local effective_variant=""
   local session_type="${XDG_SESSION_TYPE:-unknown}"
   local setxkbmap_include_opt=()
+  local setxkbmap_variant_opt=()
 
-  # Fallback local: si un fichier ./borne existe dans le repo, on le rend visible
-  # à setxkbmap via une racine XKB locale (<root>/symbols/borne).
+  # --- Étape 1 : préparer les fichiers XKB ---
+  local local_xkb_root="$script_dir/.xkb_local"
   if [ "$target_layout" = "borne" ] && [ -f "$script_dir/borne" ]; then
-    local local_xkb_root="$script_dir/.xkb_local"
     mkdir -p "$local_xkb_root/symbols"
     cp "$script_dir/borne" "$local_xkb_root/symbols/borne" 2>/dev/null || true
     setxkbmap_include_opt=(-I "$local_xkb_root")
+    # Chemin utilisateur libxkbcommon >= 1.0 (Debian Bookworm+), sans sudo
+    install_xkb_layout_user "$script_dir/borne"
   fi
 
+  # --- Étape 2 : déterminer le layout effectif ---
   if command -v setxkbmap >/dev/null 2>&1; then
-    if setxkbmap "${setxkbmap_include_opt[@]}" -layout "$target_layout" -print >/dev/null 2>&1; then
+    if [ "$target_layout" = "borne" ]; then
+      if setxkbmap "${setxkbmap_include_opt[@]}" -layout "$target_layout" -variant basic -print >/dev/null 2>&1; then
+        effective_layout="$target_layout"
+        effective_variant="basic"
+      else
+        effective_layout="$fallback_layout"
+        echo "[WARN] Layout '$target_layout(basic)' introuvable, fallback vers '$effective_layout'."
+      fi
+    elif setxkbmap "${setxkbmap_include_opt[@]}" -layout "$target_layout" -print >/dev/null 2>&1; then
       effective_layout="$target_layout"
     else
       effective_layout="$fallback_layout"
@@ -29,30 +138,47 @@ apply_keyboard_layout_runtime() {
     fi
   else
     effective_layout="$target_layout"
+    [ "$target_layout" = "borne" ] && effective_variant="basic"
   fi
 
-  echo "Configuration clavier: layout '$effective_layout' (session: $session_type)"
+  if [ -n "$effective_variant" ]; then
+    setxkbmap_variant_opt=(-variant "$effective_variant")
+    echo "Configuration clavier: layout '$effective_layout' variant '$effective_variant' (session: $session_type)"
+  else
+    echo "Configuration clavier: layout '$effective_layout' (session: $session_type)"
+  fi
 
+  # --- Étape 3 : appliquer le layout ---
   if [ "$session_type" = "wayland" ]; then
-    # Wayland/LXQt: pas de dépendance GNOME; on tente localectl puis fallback setxkbmap.
-    if command -v localectl >/dev/null 2>&1; then
-      localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || sudo -n localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || true
+    # === Chemin Wayland ===
+    # Configurer le compositeur (labwc sur RPi OS) pour que TOUS les clients
+    # (Wayland natifs + XWayland / Java AWT) reçoivent le bon keymap.
+    if pgrep -x labwc >/dev/null 2>&1; then
+      configure_labwc_keyboard "$effective_layout" "$effective_variant"
     fi
+
+    # Variables XKB_DEFAULT_* pour les clients Wayland lancés après ce point
+    export XKB_DEFAULT_LAYOUT="$effective_layout"
+    [ -n "$effective_variant" ] && export XKB_DEFAULT_VARIANT="$effective_variant"
+
+    # Tentative setxkbmap pour XWayland (complémentaire, peut être sans effet)
+    if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+      setxkbmap "${setxkbmap_include_opt[@]}" -layout "$effective_layout" "${setxkbmap_variant_opt[@]}" >/dev/null 2>&1 || true
+    fi
+
+    echo "Layout Wayland configuré."
+    return 0
   fi
 
+  # === Chemin X11 ===
   if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
-    if setxkbmap "${setxkbmap_include_opt[@]}" "$effective_layout" >/dev/null 2>&1; then
-      if [ "$session_type" = "wayland" ]; then
-        FORCE_XWAYLAND_FOR_GAME=true
-        echo "Layout appliqué via setxkbmap (fallback Wayland) — lancement forcé en X11/Xwayland."
-      else
-        echo "Layout appliqué via setxkbmap."
-      fi
+    if setxkbmap "${setxkbmap_include_opt[@]}" -layout "$effective_layout" "${setxkbmap_variant_opt[@]}" >/dev/null 2>&1; then
+      echo "Layout appliqué via setxkbmap."
       return 0
     fi
   fi
 
-  echo "[WARN] Remapping clavier non appliqué automatiquement (Wayland/compositeur)."
+  echo "[WARN] Remapping clavier non appliqué automatiquement."
   return 0
 }
 
@@ -281,12 +407,10 @@ echo "Veuillez patienter..."
 echo ""
 
 JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=true -Dsun.java2d.xrender=true -Dsun.java2d.pmoffscreen=false}"
-if [ "$FORCE_XWAYLAND_FOR_GAME" = "true" ]; then
-  echo "Forçage du jeu en X11/Xwayland (compatibilité remapping Wayland)."
-  GDK_BACKEND=x11 QT_QPA_PLATFORM=xcb SDL_VIDEODRIVER=x11 _JAVA_AWT_WM_NONREPARENTING=1 java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
-else
-  java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
-fi
+# _JAVA_AWT_WM_NONREPARENTING=1 évite les problèmes de fenêtre sous tiling WMs / Wayland.
+# Java AWT utilise toujours X11 (via XWayland sous Wayland) — le layout est géré
+# au niveau du compositeur (labwc) ou de setxkbmap (X11).
+_JAVA_AWT_WM_NONREPARENTING=1 java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
