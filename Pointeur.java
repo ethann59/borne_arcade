@@ -27,7 +27,11 @@ public class Pointeur {
 	    //System.out.println(Graphique.tableau[getValue()].getChemin());
 	    try {
 		Graphique.stopMusiqueFond();
-		Process process = Runtime.getRuntime().exec("./"+Graphique.tableau[getValue()].getNom()+".sh");
+		// Utilise game_wrapper.sh pour ré-appliquer le layout clavier avant chaque jeu
+		// (SDL2/Pygame recompile le keymap XKB indépendamment du serveur X)
+		ProcessBuilder pb = new ProcessBuilder("./game_wrapper.sh", Graphique.tableau[getValue()].getNom());
+		pb.inheritIO();
+		Process process = pb.start();
 		process.waitFor();		//ajouté afin d'attendre la fin de l'exécution du jeu pour reprendre le contrôle sur le menu
 		Graphique.lectureMusiqueFond();
 	    } catch (IOException e) {

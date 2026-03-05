@@ -171,6 +171,11 @@ apply_keyboard_layout_runtime() {
   fi
 
   # === Chemin X11 ===
+  # Exporter XKB_DEFAULT_* pour que SDL2/libxkbcommon (Pygame) puisse résoudre
+  # le layout « borne » indépendamment de ce que le serveur X rapporte en RMLVO.
+  export XKB_DEFAULT_LAYOUT="$effective_layout"
+  [ -n "$effective_variant" ] && export XKB_DEFAULT_VARIANT="$effective_variant"
+
   if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
     if setxkbmap "${setxkbmap_include_opt[@]}" -layout "$effective_layout" "${setxkbmap_variant_opt[@]}" >/dev/null 2>&1; then
       echo "Layout appliqué via setxkbmap."
