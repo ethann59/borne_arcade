@@ -116,23 +116,17 @@ echo "Vérification de l'état de compilation de MG2D..."
 need_mg2d_compile=false
 mg2d_compile_list=()
 if [ "$has_mg2d_sources" = true ]; then
-  for src in "$MG2D_DIR"/MG2D/*.java "$MG2D_DIR"/MG2D/geometrie/*.java "$MG2D_DIR"/MG2D/audio/*.java; do
-    [ -f "$src" ] || continue
-    cls="${src%.java}.class"
-    if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
-      need_mg2d_compile=true
-      mg2d_compile_list+=("$src")
-    fi
-  done
-
-  # If a fresh mg2d.jar exists and no source is newer, skip compiling .class
   if [ -f "$mg2d_jar" ] && [ "$FORCE_REBUILD" != "true" ]; then
-    newest_java=$(find "$MG2D_DIR/MG2D" -name '*.java' -print0 | xargs -0 stat -c '%Y' 2>/dev/null | sort -n | tail -n1 || true)
-    jar_mtime=$(stat -c '%Y' "$mg2d_jar" 2>/dev/null || true)
-    if [ -n "$jar_mtime" ] && [ -n "$newest_java" ] && [ "$jar_mtime" -ge "$newest_java" ]; then
-      need_mg2d_compile=false
-      echo "mg2d.jar à jour — compilation MG2D ignorée."
-    fi
+    echo "mg2d.jar présent — compilation MG2D ignorée (utilisation du JAR)."
+  else
+    for src in "$MG2D_DIR"/MG2D/*.java "$MG2D_DIR"/MG2D/geometrie/*.java "$MG2D_DIR"/MG2D/audio/*.java; do
+      [ -f "$src" ] || continue
+      cls="${src%.java}.class"
+      if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
+        need_mg2d_compile=true
+        mg2d_compile_list+=("$src")
+      fi
+    done
   fi
 else
   if [ -f "$mg2d_jar" ]; then
