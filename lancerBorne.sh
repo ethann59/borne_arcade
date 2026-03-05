@@ -34,15 +34,7 @@ apply_keyboard_layout_runtime() {
   echo "Configuration clavier: layout '$effective_layout' (session: $session_type)"
 
   if [ "$session_type" = "wayland" ]; then
-    # Wayland: setxkbmap est généralement ignoré par le compositeur.
-    # On tente d'abord la méthode GNOME (si disponible), puis fallback.
-    if command -v gsettings >/dev/null 2>&1 && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
-      if gsettings set org.gnome.desktop.input-sources sources "[('xkb', '$effective_layout')]" >/dev/null 2>&1; then
-        echo "Layout appliqué via gsettings (Wayland/GNOME)."
-        return 0
-      fi
-    fi
-
+    # Wayland/LXQt: pas de dépendance GNOME; on tente localectl puis fallback setxkbmap.
     if command -v localectl >/dev/null 2>&1; then
       localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || sudo -n localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || true
     fi
