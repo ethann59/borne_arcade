@@ -1,6 +1,45 @@
 #!/bin/bash
 
-setxkbmap borne
+FORCE_XWAYLAND_FOR_GAME=false
+
+apply_keyboard_layout_runtime() {
+  local target_layout="borne"
+  local session_type="${XDG_SESSION_TYPE:-unknown}"
+
+  echo "Configuration clavier: layout '$target_layout' (session: $session_type)"
+
+  if [ "$session_type" = "wayland" ]; then
+    # Wayland: setxkbmap est généralement ignoré par le compositeur.
+    # On tente d'abord la méthode GNOME (si disponible), puis fallback.
+    if command -v gsettings >/dev/null 2>&1 && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+      if gsettings set org.gnome.desktop.input-sources sources "[('xkb', '$target_layout')]" >/dev/null 2>&1; then
+        echo "Layout appliqué via gsettings (Wayland/GNOME)."
+        return 0
+      fi
+    fi
+
+    if command -v localectl >/dev/null 2>&1; then
+      localectl set-x11-keymap "$target_layout" >/dev/null 2>&1 || sudo -n localectl set-x11-keymap "$target_layout" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+    if setxkbmap "$target_layout" >/dev/null 2>&1; then
+      if [ "$session_type" = "wayland" ]; then
+        FORCE_XWAYLAND_FOR_GAME=true
+        echo "Layout appliqué via setxkbmap (fallback Wayland) — lancement forcé en X11/Xwayland."
+      else
+        echo "Layout appliqué via setxkbmap."
+      fi
+      return 0
+    fi
+  fi
+
+  echo "[WARN] Remapping clavier non appliqué automatiquement (Wayland/compositeur)."
+  return 0
+}
+
+apply_keyboard_layout_runtime
 
 # Déterminer le répertoire du script et se déplacer dedans
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -225,7 +264,12 @@ echo "Veuillez patienter..."
 echo ""
 
 JAVA_RENDER_OPTS="${JAVA_RENDER_OPTS:--Dsun.java2d.opengl=false -Dsun.java2d.xrender=false -Dsun.java2d.pmoffscreen=false}"
-java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
+if [ "$FORCE_XWAYLAND_FOR_GAME" = "true" ]; then
+  echo "Forçage du jeu en X11/Xwayland (compatibilité remapping Wayland)."
+  GDK_BACKEND=x11 QT_QPA_PLATFORM=xcb SDL_VIDEODRIVER=x11 _JAVA_AWT_WM_NONREPARENTING=1 java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
+else
+  java $JAVA_RENDER_OPTS -cp .:"$MG2D_CP" Main
+fi
 
 echo ""
 echo "╔════════════════════════════════════════════════════╗"
