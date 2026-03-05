@@ -288,4 +288,16 @@ public class Graphique {
 	public static void afficherTexte(int valeur){
 		f.ajouter(tableau[valeur].getTexte());
 	}
+
+	/**
+	 * Redonne le focus et le premier plan à la fenêtre du menu.
+	 * À appeler après la fin d'un sous-processus de jeu.
+	 */
+	public static void refocusFenetre() {
+		java.awt.EventQueue.invokeLater(() -> {
+			f.toFront();
+			f.requestFocus();
+			f.getP().requestFocusInWindow();
+		});
+	}
 }

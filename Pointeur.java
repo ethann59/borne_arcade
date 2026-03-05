@@ -33,6 +33,7 @@ public class Pointeur {
 		pb.inheritIO();
 		Process process = pb.start();
 		process.waitFor();		//ajouté afin d'attendre la fin de l'exécution du jeu pour reprendre le contrôle sur le menu
+		Graphique.refocusFenetre();
 		Graphique.lectureMusiqueFond();
 	    } catch (IOException e) {
 		// TODO Auto-generated catch block

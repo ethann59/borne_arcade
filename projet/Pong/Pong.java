@@ -103,16 +103,21 @@ public class Pong {
     	
     	
     	Texte texteJouer=new Texte(Couleur.NOIR,"PLAY",new Font("Calibri", Font.TYPE1_FONT, 40),new Point());
+    	f.ajouter(texteJouer);
     	texteJouer.setA(new Point(((largeur-texteJouer.getLargeur())/2),yItems+(hauteurItem-texteJouer.getHauteur())/2));
- 	    
+    	f.supprimer(texteJouer);
     	f.ajouter(texteJouer);
  	    
  	    Texte texteExit=new Texte(Couleur.NOIR,"EXIT",new Font("Calibri", Font.TYPE1_FONT, 40),new Point());
- 	   texteExit.setA(new Point(((largeur-texteExit.getLargeur())/2),(yItems+hauteurItem-texteExit.getHauteur())/2));
+ 	    f.ajouter(texteExit);
+ 	    texteExit.setA(new Point(((largeur-texteExit.getLargeur())/2),(yItems+hauteurItem-texteExit.getHauteur())/2));
+ 	    f.supprimer(texteExit);
  	    f.ajouter(texteExit);
  	    
  	    Texte textPong=new Texte(Couleur.BLANC,"PONG",new Font("Arial", Font.TYPE1_FONT, 250),new Point());
- 	   textPong.setA(new Point(((largeur-textPong.getLargeur())/2),(((hauteur-textPong.getHauteur())/2)+100 )));
+	    f.ajouter(textPong);
+ 	    textPong.setA(new Point(((largeur-textPong.getLargeur())/2),(((hauteur-textPong.getHauteur())/2)+100 )));
+	    f.supprimer(textPong);
 	    f.ajouter(textPong);
     	
  	  /*  if(clavier.getJoyJ1HautEnfoncee()) {
