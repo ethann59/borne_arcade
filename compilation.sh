@@ -161,17 +161,25 @@ echo "export MG2D_CP='$MG2D_CP'" > .mg2d_env
 # Compilation incrémentale du menu principal
 echo "Compilation du menu de la borne d'arcade"
 echo "Veuillez patienter"
+menu_java_files=()
+while IFS= read -r -d '' src; do
+  menu_java_files+=("${src#./}")
+done < <(find . -maxdepth 1 -type f -name '*.java' -print0)
+
 menu_compile_list=()
-for src in *.java; do
-  [ -f "$src" ] || continue
+for src in "${menu_java_files[@]}"; do
   cls="${src%.java}.class"
   if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
     menu_compile_list+=("$src")
   fi
 done
-if [ ${#menu_compile_list[@]} -eq 0 ]; then
+if [ ${#menu_java_files[@]} -eq 0 ]; then
+  echo "Aucun fichier Java de menu trouvé, compilation ignorée."
+elif [ ${#menu_compile_list[@]} -eq 0 ]; then
+  echo "Vérification explicite Java du menu: tout est à jour."
   echo "Menu à jour, compilation ignorée."
 else
+  echo "Vérification explicite Java du menu: ${#menu_compile_list[@]} fichier(s) à compiler."
   javac -encoding "$JAVAC_ENCODING" -cp .:"$MG2D_CP" "${menu_compile_list[@]}"
 fi
 
@@ -201,11 +209,15 @@ for i in *; do
       fi
     fi
 
-        # Compilation Java incrémentale dans le dossier du jeu
-    if ls *.java >/dev/null 2>&1; then
+        # Vérification explicite et compilation Java incrémentale (récursive, hors tests)
+    game_java_files=()
+    while IFS= read -r -d '' src; do
+      game_java_files+=("${src#./}")
+    done < <(find . -type f -name '*.java' ! -path './tests/*' ! -path './*/tests/*' -print0)
+
+    if [ ${#game_java_files[@]} -gt 0 ]; then
       compile_list=()
-      for src in *.java; do
-        [ -f "$src" ] || continue
+      for src in "${game_java_files[@]}"; do
         cls="${src%.java}.class"
         if [ "$FORCE_REBUILD" = "true" ] || [ ! -f "$cls" ] || [ "$src" -nt "$cls" ]; then
           compile_list+=("$src")
@@ -213,8 +225,10 @@ for i in *; do
       done
 
       if [ ${#compile_list[@]} -eq 0 ]; then
+        echo "Vérification explicite Java pour $i: tout est à jour."
         echo "Jeu $i à jour, compilation ignorée."
       else
+        echo "Vérification explicite Java pour $i: ${#compile_list[@]} fichier(s) à compiler."
         javac -encoding "$JAVAC_ENCODING" -cp .:"$MG2D_CP":../.. "${compile_list[@]}" || { echo "Échec de compilation du jeu $i"; cd ..; continue; }
       fi
     else
