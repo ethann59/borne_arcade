@@ -29,6 +29,7 @@ class GameAnalyzer:
     PROJECT_ROOT = Path(__file__).parent
     GAMES_DIR = PROJECT_ROOT / "projet"
     MKDOCS_GAMES_DIR = PROJECT_ROOT / "docs" / "jeux"
+    GLOBAL_DOCS_DIR = PROJECT_ROOT / "docs"
     
     # Jeux à exclure
     EXCLUDED_GAMES = {"Galad-Scott"}
@@ -42,7 +43,7 @@ class GameAnalyzer:
         "javascript": [".js", ".ts"],
     }
     
-    def __init__(self, model: str = "gemma3:latest", verbose: bool = True, run_tests: bool = False):
+    def __init__(self, model: str = "auto:qwen", verbose: bool = True, run_tests: bool = False):
         """
         Initialise l'analyseur.
         
@@ -54,6 +55,47 @@ class GameAnalyzer:
         self.model = model
         self.verbose = verbose
         self.run_tests = run_tests
+
+    def _select_best_qwen_model(self, available_models: List[str]) -> Optional[str]:
+        """
+        Sélectionne le meilleur modèle Qwen orienté génération texte.
+
+        Priorité:
+          1) qwen3
+          2) qwen2.5
+          3) qwen2
+        Exclut les modèles embedding et privilégie le texte (non-vl) quand possible.
+        """
+        qwen_models = [m for m in available_models if m.lower().startswith("qwen")]
+        if not qwen_models:
+            return None
+
+        def model_score(name: str) -> Tuple[int, int, int]:
+            lower = name.lower()
+
+            if "embedding" in lower or "embed" in lower:
+                return (-1, -1, -1)
+
+            family_rank = 0
+            if lower.startswith("qwen3"):
+                family_rank = 3
+            elif lower.startswith("qwen2.5"):
+                family_rank = 2
+            elif lower.startswith("qwen2"):
+                family_rank = 1
+
+            is_text_rank = 1 if ("vl" not in lower and "vision" not in lower) else 0
+
+            size_match = re.search(r":(\d+)b", lower)
+            size_rank = int(size_match.group(1)) if size_match else 0
+
+            return (family_rank, is_text_rank, size_rank)
+
+        candidates = [m for m in qwen_models if model_score(m)[0] >= 0]
+        if not candidates:
+            return None
+
+        return sorted(candidates, key=model_score, reverse=True)[0]
 
     def ensure_model_available(self) -> bool:
         """
@@ -68,14 +110,28 @@ class GameAnalyzer:
             print(f"[ERREUR] Impossible de récupérer la liste des modèles Ollama : {e}")
             return False
 
-        available_models = {m.name for m in models}
-        if self.model in available_models:
+        available_models = sorted({m.name for m in models})
+
+        if self.model == "auto:qwen":
+            selected = self._select_best_qwen_model(available_models)
+            if selected:
+                self.model = selected
+                self.log(f"Modèle auto-sélectionné : {self.model}")
+                return True
+            print("[ERREUR] Aucun modèle Qwen compatible génération texte n'a été trouvé.")
+            if available_models:
+                print("Modèles disponibles :")
+                for name in available_models:
+                    print(f"  - {name}")
+            return False
+
+        if self.model in set(available_models):
             return True
 
         print(f"[ERREUR] Modèle introuvable : {self.model}")
         if available_models:
             print("Modèles disponibles :")
-            for name in sorted(available_models):
+            for name in available_models:
                 print(f"  - {name}")
         else:
             print("Aucun modèle installé sur Ollama.")
@@ -599,6 +655,126 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
                 self.log(f"Erreur de copie vers MkDocs pour {game_name} : {e}")
 
         self.log(f"Copie vers MkDocs terminée : {copied_count}/{len(game_names)} fichiers")
+
+    def _read_if_exists(self, path: Path, max_chars: int = 8000) -> str:
+        """Lit un fichier texte si présent, sinon retourne une chaîne vide."""
+        if not path.exists():
+            return ""
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")[:max_chars]
+        except Exception:
+            return ""
+
+    def _build_global_context(self) -> str:
+        """Construit un contexte global du projet pour générer les docs transverses."""
+        readme = self._read_if_exists(self.PROJECT_ROOT / "README.md", max_chars=12000)
+        quick_guide = self._read_if_exists(self.PROJECT_ROOT / "docs" / "GUIDE_RAPIDE.md", max_chars=10000)
+        install_overview = self._read_if_exists(self.PROJECT_ROOT / "docs" / "installation" / "overview.md", max_chars=8000)
+        install_generator = self._read_if_exists(self.PROJECT_ROOT / "docs" / "installation" / "generator.md", max_chars=8000)
+
+        games = sorted([d.name for d in self.GAMES_DIR.iterdir() if d.is_dir() and d.name not in self.EXCLUDED_GAMES])
+
+        launchers = sorted([
+            p.name
+            for p in self.PROJECT_ROOT.glob("*.sh")
+            if p.name not in {"clean.sh", "compilation.sh", "install.sh", "run_tests.sh", "generate_docs.sh", "updater.sh"}
+        ])
+
+        context = []
+        context.append("# Contexte projet borne_arcade")
+        context.append("## Jeux présents")
+        context.append("\n".join(f"- {g}" for g in games))
+        context.append("\n## Scripts de lancement")
+        context.append("\n".join(f"- {s}" for s in launchers))
+
+        if readme:
+            context.append("\n## README.md")
+            context.append(readme)
+        if quick_guide:
+            context.append("\n## docs/GUIDE_RAPIDE.md")
+            context.append(quick_guide)
+        if install_overview:
+            context.append("\n## docs/installation/overview.md")
+            context.append(install_overview)
+        if install_generator:
+            context.append("\n## docs/installation/generator.md")
+            context.append(install_generator)
+
+        return "\n".join(context)
+
+    def _generate_global_doc(self, title: str, target_path: Path, extra_requirements: str, fallback_text: str) -> None:
+        """Génère une documentation globale via Ollama puis sauvegarde le résultat."""
+        self.log(f"Génération de la documentation globale : {title}")
+        context = self._build_global_context()
+
+        prompt = f"""Tu es expert en documentation logicielle pour une borne d'arcade pédagogique.
+Génère un document Markdown clair, structuré, factuel, en français.
+
+Contexte projet :
+{context}
+
+Objectif du document: {title}
+
+Contraintes:
+- N'invente pas d'outils/fichiers absents du contexte.
+- Utilise des étapes concrètes et opérationnelles.
+- Mets des sections et sous-sections lisibles.
+- N'encapsule pas toute la réponse dans un bloc ```markdown.
+
+Exigences spécifiques:
+{extra_requirements}
+
+Réponds uniquement avec le Markdown final, sans préambule."""
+
+        try:
+            result: OllamaGenerateResult = self.ollama.generate_text(
+                model=self.model,
+                prompt=prompt,
+                options={"temperature": 0.3, "num_predict": 2500},
+            )
+            content = self._sanitize_documentation_markdown(result.response)
+        except Exception as e:
+            self.log(f"Erreur génération {title}: {e}")
+            content = fallback_text
+
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_text(content, encoding="utf-8")
+            self.log(f"Documentation globale sauvegardée : {target_path}")
+        except Exception as e:
+            self.log(f"Erreur sauvegarde {target_path}: {e}")
+
+    def generate_global_documentation(self) -> None:
+        """Génère les 4 documentations globales attendues par l'objectif."""
+        docs = [
+            (
+                "Documentation technique",
+                self.GLOBAL_DOCS_DIR / "TECHNIQUE_AUTO.md",
+                "Décrire architecture du projet, composants principaux, pipeline de compilation, dépendances, scripts clés, structure des dossiers, points d'extension.",
+                "# Documentation technique\n\n## Architecture\nDocument généré en mode secours.\n",
+            ),
+            (
+                "Documentation d'installation",
+                self.GLOBAL_DOCS_DIR / "INSTALLATION_AUTO.md",
+                "Donner prérequis, installation pas à pas, configuration initiale, lancement, validation post-installation, dépannage de base.",
+                "# Documentation d'installation\n\n## Prérequis\nDocument généré en mode secours.\n",
+            ),
+            (
+                "Documentation pour l'ajout d'un nouveau jeu",
+                self.GLOBAL_DOCS_DIR / "AJOUT_JEU_AUTO.md",
+                "Expliquer convention des dossiers, scripts à créer, fichiers obligatoires (description/bouton), intégration menu/compilation, checklist de validation.",
+                "# Ajouter un nouveau jeu\n\n## Étapes\nDocument généré en mode secours.\n",
+            ),
+            (
+                "Documentation utilisateur",
+                self.GLOBAL_DOCS_DIR / "UTILISATEUR_AUTO.md",
+                "Produire un guide utilisateur borne: navigation menu, lancement des jeux, contrôles généraux, scores, résolution de problèmes fréquents.",
+                "# Guide utilisateur\n\n## Utilisation\nDocument généré en mode secours.\n",
+            ),
+        ]
+
+        for title, path, requirements, fallback in docs:
+            self._generate_global_doc(title, path, requirements, fallback)
     
     def process_game(self, game_name: str) -> Tuple[bool, str]:
         """
@@ -700,6 +876,9 @@ Réponds UNIQUEMENT avec le code de test complet, sans commentaires préliminair
         successful_games = [name for name, (success, _) in results.items() if success]
         self.copy_docs_to_mkdocs(successful_games)
 
+        # Génère les documentations globales demandées par l'objectif
+        self.generate_global_documentation()
+
 
 def main():
     """Point d'entrée principal."""
@@ -710,8 +889,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="gemma3:latest",
-        help="Modèle Ollama à utiliser (défaut: gemma3:latest)"
+        default="auto:qwen",
+        help="Modèle Ollama à utiliser (défaut: auto:qwen)"
     )
     parser.add_argument(
         "--game",
