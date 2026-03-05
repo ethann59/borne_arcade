@@ -3,28 +3,53 @@
 FORCE_XWAYLAND_FOR_GAME=false
 
 apply_keyboard_layout_runtime() {
-  local target_layout="borne"
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local target_layout="${TARGET_KEYBOARD_LAYOUT:-borne}"
+  local fallback_layout="${FALLBACK_KEYBOARD_LAYOUT:-fr}"
+  local effective_layout=""
   local session_type="${XDG_SESSION_TYPE:-unknown}"
+  local setxkbmap_include_opt=()
 
-  echo "Configuration clavier: layout '$target_layout' (session: $session_type)"
+  # Fallback local: si un fichier ./borne existe dans le repo, on le rend visible
+  # à setxkbmap via une racine XKB locale (<root>/symbols/borne).
+  if [ "$target_layout" = "borne" ] && [ -f "$script_dir/borne" ]; then
+    local local_xkb_root="$script_dir/.xkb_local"
+    mkdir -p "$local_xkb_root/symbols"
+    cp "$script_dir/borne" "$local_xkb_root/symbols/borne" 2>/dev/null || true
+    setxkbmap_include_opt=(-I "$local_xkb_root")
+  fi
+
+  if command -v setxkbmap >/dev/null 2>&1; then
+    if setxkbmap "${setxkbmap_include_opt[@]}" -layout "$target_layout" -print >/dev/null 2>&1; then
+      effective_layout="$target_layout"
+    else
+      effective_layout="$fallback_layout"
+      echo "[WARN] Layout '$target_layout' introuvable, fallback vers '$effective_layout'."
+    fi
+  else
+    effective_layout="$target_layout"
+  fi
+
+  echo "Configuration clavier: layout '$effective_layout' (session: $session_type)"
 
   if [ "$session_type" = "wayland" ]; then
     # Wayland: setxkbmap est généralement ignoré par le compositeur.
     # On tente d'abord la méthode GNOME (si disponible), puis fallback.
     if command -v gsettings >/dev/null 2>&1 && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
-      if gsettings set org.gnome.desktop.input-sources sources "[('xkb', '$target_layout')]" >/dev/null 2>&1; then
+      if gsettings set org.gnome.desktop.input-sources sources "[('xkb', '$effective_layout')]" >/dev/null 2>&1; then
         echo "Layout appliqué via gsettings (Wayland/GNOME)."
         return 0
       fi
     fi
 
     if command -v localectl >/dev/null 2>&1; then
-      localectl set-x11-keymap "$target_layout" >/dev/null 2>&1 || sudo -n localectl set-x11-keymap "$target_layout" >/dev/null 2>&1 || true
+      localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || sudo -n localectl set-x11-keymap "$effective_layout" >/dev/null 2>&1 || true
     fi
   fi
 
   if command -v setxkbmap >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
-    if setxkbmap "$target_layout" >/dev/null 2>&1; then
+    if setxkbmap "${setxkbmap_include_opt[@]}" "$effective_layout" >/dev/null 2>&1; then
       if [ "$session_type" = "wayland" ]; then
         FORCE_XWAYLAND_FOR_GAME=true
         echo "Layout appliqué via setxkbmap (fallback Wayland) — lancement forcé en X11/Xwayland."
