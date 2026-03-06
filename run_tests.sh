@@ -156,7 +156,7 @@ run_java_tests() {
     fi
 
     find "$game_dir" -name "*.class" -delete 2>/dev/null
-  done < <(find projet -type f -path "*/tests/Tests.java" | sort)
+  done < <(find projet -type f -path "*/tests/*.java" | sort)
 
   if [ "$found" -eq 0 ]; then
     report_skip "Aucun test Java trouvé"

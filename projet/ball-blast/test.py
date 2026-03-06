@@ -1,140 +1,261 @@
 import pytest
-import sys
-import os
 import pygame
 import random
-import math
-from ball_blast.ball import Ball
-from ball_blast.game import Game
-from ball_blast.player import Player
-from ball_blast.bullet import Bullet
-from ball_blast.constantes import SCREEN_WIDTH, SCREEN_HEIGHT, RED
-import unittest.mock
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+from unittest.mock import patch, MagicMock
+from ball import Ball
+from bullet import Bullet
+from player import Player
+from game import Game
+from constantes import SCREEN_WIDTH, SCREEN_HEIGHT, RED, WHITE, PLAYER_SPEED, BALL_SPEED_X, BALL_SPEED_FALL, BALL_TOP_BOUNCE, BALL_BOTTOM_BOUNCE
 
 @pytest.fixture
 def mock_pygame():
-    with unittest.mock.patch('pygame.init') as init_mock:
-        yield init_mock
-        init_mock.assert_called_once()
-
-@pytest.fixture
-def mock_pygame_mixer():
-    with unittest.mock.patch('pygame.mixer.init') as init_mock:
-        yield init_mock
-        init_mock.assert_called_once()
-
-@pytest.fixture
-def mock_screen():
-    with unittest.mock.patch('pygame.display.set_mode') as set_mode_mock:
-        screen = set_mode_mock.return_value
-        screen.width = SCREEN_WIDTH
-        screen.height = SCREEN_HEIGHT
-        yield screen
-        set_mode_mock.assert_called_once_with(SCREEN_WIDTH, SCREEN_HEIGHT)
-
-@pytest.fixture
-def mock_clock():
-    with unittest.mock.patch('pygame.time.Clock') as clock_mock:
-        yield clock_mock
-        clock_mock.assert_called_once()
-
-@pytest.fixture
-def mock_random():
-    with unittest.mock.patch('random.randint') as randint_mock:
-        yield randint_mock
+    with patch('pygame.init'):
+        with patch('pygame.display.set_mode') as mock_set_mode:
+            with patch('pygame.time.Clock') as mock_clock:
+                with patch('pygame.mixer.init'):
+                    with patch('pygame.mixer.music'):
+                        yield mock_set_mode, mock_clock
 
 @pytest.fixture
 def mock_font():
-    with unittest.mock.patch('ball_blast.constantes.font') as font_mock:
-        yield font_mock
-        font_mock.assert_called_once()
+    with patch('ball.font') as mock_font:
+        yield mock_font
 
 @pytest.fixture
-def mock_pygame_mixer_music():
-    with unittest.mock.patch('pygame.mixer.music') as music_mock:
-        yield music_mock
-        music_mock.assert_called_once()
+def mock_random():
+    with patch('random.randint') as mock_randint:
+        yield mock_randint
 
-def test_ball_creation():
-    ball = Ball(100, 50, 20, RED)
+def test_ball_initialization():
+    ball = Ball(100, 50, 20, 0, RED)
     assert ball.rect.x == 100
     assert ball.rect.y == 50
-    assert ball.size == 20
+    assert ball.radius == 20
     assert ball.color == RED
+    assert ball.base_life_points >= 1
+    assert ball.base_life_points <= 15
+    assert ball.mask is not None
 
-def test_game_initialization():
-    game_instance = Game()
-    assert isinstance(game_instance.player, Player)
-    assert isinstance(game_instance.balls, pygame.sprite.Group)
-    assert isinstance(game_instance.bullets, pygame.sprite.Group)
-    assert isinstance(game_instance.all_sprites, pygame.sprite.Group)
+def test_ball_update_position():
+    ball = Ball(100, 50, 20)
+    initial_x = ball.rect.x
+    initial_y = ball.rect.y
+    ball.update()
+    assert ball.rect.x != initial_x or ball.rect.y != initial_y
 
-def test_player_movement():
-    player = Player()
-    # Add assertions to verify player movement based on input
-    pass
+def test_ball_collision_bounce():
+    ball = Ball(100, 50, 20)
+    ball.rect.x = 0
+    ball.speed_x = -5
+    ball.update()
+    assert ball.speed_x > 0
 
-def test_bullet_creation():
+def test_ball_take_damage():
+    ball = Ball(100, 50, 20)
+    initial_life = ball.life_points
+    is_destroyed = ball.take_damage()
+    assert ball.life_points == initial_life - 1
+    assert is_destroyed == False
+
+def test_ball_take_damage_destroyed():
+    ball = Ball(100, 50, 20)
+    ball.life_points = 1
+    is_destroyed = ball.take_damage()
+    assert is_destroyed == True
+
+def test_ball_decale():
+    ball = Ball(100, 50, 20)
+    initial_x = ball.rect.x
+    ball.decale(10)
+    assert ball.rect.x == initial_x + 10
+
+def test_ball_decale_speed_change():
+    ball = Ball(100, 50, 20)
+    initial_speed = ball.speed_x
+    ball.decale(-10)
+    assert ball.speed_x != initial_speed
+
+def test_bullet_initialization():
     bullet = Bullet(100, 50)
-    assert isinstance(bullet, Bullet)
+    assert bullet.rect.x == 100
+    assert bullet.rect.y == 50
+    assert bullet.speed_y == 10
 
-def test_ball_collision():
-    # This test needs a more complex setup with sprites and collision detection
-    pass
+def test_bullet_update():
+    bullet = Bullet(100, 50)
+    initial_y = bullet.rect.y
+    bullet.update()
+    assert bullet.rect.y == initial_y - bullet.speed_y
 
-def test_game_logic():
-    # This test needs a more complex setup with game logic and events
-    pass
+def test_bullet_kill():
+    bullet = Bullet(100, 50)
+    bullet.rect.y = -10
+    bullet.update()
+    assert bullet.alive() == False
 
-def test_menu_creation():
-    # This test needs a more complex setup with menu elements
-    pass
-
-def test_game_state():
-    game = Game()
-    assert game.level == 0
-    assert game.player.score == 0
-
-def test_ball_destruction():
-    # This test requires a setup with balls and bullets
-    pass
-
-def test_player_score():
-    player = Player()
-    player.score = 10
-    assert player.score == 10
-
-def test_bullet_shooting():
-    # This test needs a more complex setup with player and bullet shooting
-    pass
-
-def test_ball_spawn():
-    # This test needs a more complex setup with balls and spawn logic
-    pass
-
-def test_game_over():
-    # This test needs a more complex setup with game over conditions
-    pass
-
-def test_level_up():
-    # This test needs a more complex setup with level up logic
-    pass
-
-def test_ball_init():
-    ball = Ball(50, 50, 10, RED)
-    assert ball.rect.x == 50
-    assert ball.rect.y == 50
-    assert ball.size == 10
-    assert ball.color == RED
-
-def test_player_init():
+def test_player_initialization():
     player = Player()
     assert player.rect.x == 0
     assert player.rect.y == 0
     assert player.speed == PLAYER_SPEED
 
-def test_bullet_init():
+def test_player_movement():
+    player = Player()
+    player.rect.x = 50
+    player.rect.y = 50
+    player.move_left()
+    assert player.rect.x == 40
+    player.move_right()
+    assert player.rect.x == 50
+    player.move_up()
+    assert player.rect.y == 40
+    player.move_down()
+    assert player.rect.y == 50
+
+def test_game_initialization():
+    game = Game()
+    assert game.level == 0
+    assert game.player is not None
+    assert game.balls is not None
+    assert game.bullets is not None
+    assert game.all_sprites is not None
+
+def test_game_spawn_ball():
+    game = Game()
+    initial_ball_count = len(game.balls)
+    game.spawn_ball()
+    assert len(game.balls) == initial_ball_count + 1
+
+def test_game_shoot():
+    game = Game()
+    initial_bullet_count = len(game.bullets)
+    game.shoot()
+    assert len(game.bullets) == initial_bullet_count + 1
+
+def test_ball_update_boundary_collision():
+    ball = Ball(0, 50, 20)
+    ball.rect.x = -10
+    ball.speed_x = -5
+    ball.update()
+    assert ball.speed_x > 0
+
+def test_ball_update_screen_bottom():
+    ball = Ball(100, 1000, 20)
+    ball.rect.bottom = SCREEN_HEIGHT + 10
+    ball.speed_y = 5
+    ball.update()
+    assert BALL_TOP_BOUNCE <= ball.speed_y <= BALL_BOTTOM_BOUNCE
+
+def test_ball_update_speed_y():
+    ball = Ball(100, 100, 20)
+    ball.rect.bottom = SCREEN_HEIGHT - 10
+    ball.speed_y = 5
+    ball.update()
+    assert ball.speed_y == 5 + BALL_SPEED_FALL
+
+def test_ball_take_damage_rendering():
+    ball = Ball(100, 50, 20)
+    ball.take_damage()
+    assert ball.life_points == 19
+
+def test_ball_decale_speed_inversion():
+    ball = Ball(100, 50, 20)
+    ball.speed_x = 5
+    ball.decale(-10)
+    assert ball.speed_x < 0
+
+def test_ball_decale_speed_no_inversion():
+    ball = Ball(100, 50, 20)
+    ball.speed_x = 5
+    ball.decale(10)
+    assert ball.speed_x > 0
+
+def test_ball_speed_x_range():
+    ball = Ball(100, 50, 20)
+    assert ball.speed_x >= BALL_SPEED_X and ball.speed_x <= 2 * BALL_SPEED_X
+
+def test_ball_speed_y_range():
+    ball = Ball(100, 50, 20)
+    assert ball.speed_y >= -2 and ball.speed_y <= 2
+
+def test_game_spawn_ball_multiple():
+    game = Game()
+    initial_count = len(game.balls)
+    for i in range(5):
+        game.spawn_ball()
+    assert len(game.balls) == initial_count + 5
+
+def test_game_shoot_multiple():
+    game = Game()
+    initial_count = len(game.bullets)
+    for i in range(3):
+        game.shoot()
+    assert len(game.bullets) == initial_count + 3
+
+def test_player_movement_boundaries():
+    player = Player()
+    player.rect.x = 0
+    player.move_left()
+    assert player.rect.x == 0
+    player.rect.x = SCREEN_WIDTH - 10
+    player.move_right()
+    assert player.rect.x == SCREEN_WIDTH - 10
+    player.rect.y = 0
+    player.move_up()
+    assert player.rect.y == 0
+    player.rect.y = SCREEN_HEIGHT - 10
+    player.move_down()
+    assert player.rect.y == SCREEN_HEIGHT - 10
+
+def test_ball_initialization_with_different_values():
+    ball = Ball(100, 50, 30, 2, RED)
+    assert ball.rect.x == 100
+    assert ball.rect.y == 50
+    assert ball.radius == 30
+    assert ball.level() == 2
+
+def test_ball_update_edge_case():
+    ball = Ball(0, 0, 20)
+    ball.rect.left = 0
+    ball.rect.right = SCREEN_WIDTH
+    ball.speed_x = 5
+    ball.update()
+    assert ball.speed_x < 0
+
+def test_game_initialization_with_mocked_components():
+    with patch('pygame.sprite.Group') as mock_group:
+        mock_group_instance = MagicMock()
+        mock_group.return_value = mock_group_instance
+        game = Game()
+        assert game.all_sprites is not None
+
+def test_ball_take_damage_multiple():
+    ball = Ball(100, 50, 20)
+    for i in range(5):
+        ball.take_damage()
+    assert ball.life_points == 15
+
+def test_ball_decale_multiple():
+    ball = Ball(100, 50, 20)
+    ball.decale(10)
+    ball.decale(5)
+    assert ball.rect.x == 115
+
+def test_bullet_kill_after_screen_top():
     bullet = Bullet(100, 50)
-    assert bullet.rect.x == 100
-    assert bullet.rect.y == 50
-    assert bullet.speed_y == 10
+    bullet.rect.y = -10
+    bullet.update()
+    assert not bullet.alive()
+
+def test_player_movement_with_boundaries():
+    player = Player()
+    player.rect.x = 0
+    player.move_left()
+    assert player.rect.x == 0
+    player.rect.x = SCREEN_WIDTH - 10
+    player.move_right()
+    assert player.rect.x <= SCREEN_WIDTH
