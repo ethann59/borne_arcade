@@ -1,85 +1,125 @@
-IUT du Littoral Côte d'Opale (IUTLCO)
-====================================
-Projet tutoré 2017-2018- 2ème année
-----------------------------------
+# Borne d'Arcade — IUT du Littoral Côte d'Opale
 
-Groupe projet : Romaric Bougard, Pierre Delobel et Bastien Ducloy
+Logiciel de borne d'arcade pédagogique développé à l'IUT du Littoral Côte d'Opale (IUTLCO). Le projet propose un menu de sélection de jeux et une collection de **14 jeux** développés en Java, Python et Lua.
 
+> Projet initié en 2017-2018 par Romaric Bougard, Pierre Delobel et Bastien Ducloy.
+> Repris et maintenu depuis par les promotions successives.
 
-Plus d'infos [ici](http://iut.univ-littoral.fr/gitlab/synave/borne_arcade/wikis/home)
+## Prérequis
 
-# touche de la borne
+| Dépendance | Version recommandée |
+|------------|---------------------|
+| Java (JDK) | OpenJDK 17+ |
+| Python     | 3.x + Pygame |
+| Love2D     | 11.x (pour CursedWare) |
 
-Correspondance clavier -> bouton borne
+**Matériel cible** : Raspberry Pi 3+, écran 4:3 (1280×1024), 2 joysticks + 6 boutons par joueur.
 
-joystick j1
-fleches haut bas gauche droite
+## Installation rapide
 
-joystick j2
-o l k m
+```bash
+git clone <url_du_dépôt> borne_arcade
+cd borne_arcade
+chmod +x *.sh
+./install.sh          # installe les dépendances (Debian/Ubuntu/RPi OS)
+./compilation.sh      # compile le menu et les jeux Java
+```
 
-6 touches J1
-r t y
-f g h
+Le script `install.sh` supporte les options `--interactive`, `--non-interactive` et `--dry-run`.
 
-6 touches J2
-a z e
-q s d 
+## Lancement
 
-Attention ! De base, l'encodeur clavier de la borne de l'IUT a té mal relié aux boutons. Ce ne sont donc pas les bonnes lettres qui son identifiées lorsque l'on appuie sur un bouton ou fait bouger un joystick. Voir fichier **borne**
+```bash
+./lancerBorne.sh      # applique le layout clavier, compile si nécessaire, lance le menu
+```
 
+Au démarrage, le script :
+1. Installe et active le layout clavier XKB personnalisé `borne`
+2. Recompile les sources si nécessaire
+3. Lance le menu Java de sélection de jeux
+4. Éteint la machine à la fermeture du menu
 
-Contrainte matérielle
-----
-- Raspberry pi model 3 de préférence
-- Ecran 4:3 de résolution 1280x1024
-- Pour borne 2 joueurs, joystick et 6 boutons par joueur + d'autres boutons inutilisés pour le moment.
+Pour lancer un jeu isolé : `./NomDuJeu.sh` (ex. `./Pong.sh`).
 
+## Mapping clavier
 
-Installation du système d'exploitation
-----
-Installez Raspbian sur votre raspberry
+La borne utilise un layout XKB personnalisé (fichier `borne`). Les encodeurs de chaque joueur sont mappés ainsi :
 
-Installation des outils
-----
+|               | Joystick        | X   | Y   | Z   | A   | B   | C   |
+|---------------|-----------------|-----|-----|-----|-----|-----|-----|
+| **Joueur 1**  | Flèches ↑↓←→   | R   | T   | Y   | F   | G   | H   |
+| **Joueur 2**  | O / L / K / M   | A   | Z   | E   | Q   | S   | D   |
 
-Installez le jdk de java. Dans un terminal :
-> sudo apt-get update
+Chaque jeu précise ses contrôles dans le fichier `bouton.txt` du répertoire `projet/<jeu>/`.
 
-> sudo apt-get install openjdk-8-jdk
+## Jeux disponibles
 
-Installez git. Toujours dans le même terminal :
-> sudo apt-get install git
+| Jeu | Langage | Framework | Catégorie |
+|-----|---------|-----------|-----------|
+| ball-blast | Python | Pygame | Action |
+| Columns | Java | MG2D | Réflexion |
+| CursedWare | Lua | Love2D | Mini-jeux |
+| DinoRail | Java | MG2D | Course |
+| InitialDrift | Java | MG2D | Course |
+| JavaSpace | Java | MG2D | Shoot'em up |
+| Kowasu_Renga | Java | MG2D | Casse-briques |
+| Minesweeper | Java | MG2D | Réflexion |
+| OsuTile | Python | Pygame | Rythme |
+| PianoTile | Python | Pygame | Rythme |
+| Pong | Java | MG2D | Arcade |
+| Puissance_X | Java | MG2D | Réflexion |
+| Snake_Eater | Java | MG2D | Arcade |
+| TronGame | Python | Pygame | Arcade |
 
-Créez un répertoire git :
-> cd ~
+Galad-Scott (Python) dispose de sa [documentation dédiée](https://ethann59.github.io/Galad-Scott/).
 
-> mkdir git
+## Structure du projet
 
-> cd git
+```
+├── Main.java / *.java       # Menu principal (Java + MG2D)
+├── projet/                   # Code source de chaque jeu
+│   ├── <jeu>/
+│   │   ├── bouton.txt        # Mapping des contrôles
+│   │   ├── description.txt   # Description affichée dans le menu
+│   │   └── tests/            # Tests unitaires (JUnit 5 / pytest / busted)
+├── docs/                     # Documentation MkDocs (Material)
+├── MG2D/                     # Bibliothèque graphique Java
+├── borne                     # Layout clavier XKB personnalisé
+├── lancerBorne.sh            # Script de lancement principal
+├── compilation.sh            # Compilation du menu et des jeux Java
+├── install.sh                # Installation automatisée des dépendances
+├── run_tests.sh              # Exécution des tests (Java, Python, Lua)
+└── generate_docs_and_tests.py  # Génération IA de docs/tests via Ollama
+```
 
-On va ensuite télécharger la bibliothèque MG2D et la partie logicielle ici présente. Si vous l'avez déjà téléchargée, vous déplacerez le répertoire dans le répertoire git précédemment créé. Le répertoire doit s'appeler ***borne_arcade***
+## Documentation
 
-> git clone http://iut.univ-littoral.fr/gitlab/synave/MG2D.git
+La documentation complète est générée avec MkDocs Material :
 
-> git clone http://iut.univ-littoral.fr/gitlab/synave/borne_arcade.git
+```bash
+pip install mkdocs mkdocs-material pymdown-extensions
+mkdocs serve        # serveur local sur http://127.0.0.1:8000
+mkdocs build        # génération statique dans site/
+```
 
-Suite à ces téléchargements, vous devez avoir l'arborescence suivante :
-- répertoire personnel
-- &nbsp; &nbsp; |
-- &nbsp; &nbsp; |-> git
-- &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |
-- &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |-> MG2D
-- &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; |-> borne_arcade
+## Tests
 
-Lancez le logiciel au démarrage de la borne
-----
+```bash
+./run_tests.sh      # lance tous les tests (Java, Python, Lua)
+```
 
-> mv borne.desktop ~/.config/autostart/
+Le script détecte automatiquement les fichiers de test dans `projet/*/tests/` (Java) et `projet/*/test.py` / `test.lua`, télécharge JUnit 5 si nécessaire, et affiche un résumé OK/FAIL/SKIP.
 
-Redémarrez et normalement, lors du démarrage, un terminal va s'ouvrir et quelques secondes après (10-15 secondes), l'interface de la borne va se lancer. Des informations concernant les opérations en cours sont affichées dans le terminal. Soyez patient.
+## Outils IA
 
-Sélectionnez le jeu avec haut/bas du joystick du joueur 1 et lancez le jeu avec le bouton A du joueur 1.
-Quittez le logiciel avec le bouton Z du joueur 1. Une demande de confirmation s'affichera. Validez oui ou non avec le bouton A du joueur 1.
+Le script `generate_docs_and_tests.py` génère automatiquement documentation et tests unitaires pour chaque jeu via un serveur [Ollama](https://ollama.ai/) :
 
-Si vous quittez le menu, vous reviendrez sur le terminal. Attendez 30 secondes pour une extinction totale de la machine.
+```bash
+cp config.ini.example config.ini   # configurer l'URL du serveur Ollama
+python3 generate_docs_and_tests.py
+```
+
+## Licence
+
+Projet pédagogique de l'IUT du Littoral Côte d'Opale.
+Par Ethann Cailliau
