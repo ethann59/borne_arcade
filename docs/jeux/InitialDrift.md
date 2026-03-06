@@ -1,32 +1,38 @@
-# InitialDrift
+# Documentation Jeu Arcade
 
-## Description
+## 1. Description
 
-InitialDrift est un jeu de conduite développé par Loan Caecke (2017). Le joueur doit rouler le plus loin possible en évitant les véhicules arrivant en sens inverse : voitures, chars et barils de pétrole. Le tout accompagné d'une musique entêtante.
+Jeu de type "dodge" sur une borne d'arcade, où le joueur doit éviter les ennemis qui apparaissent sur la route. Le joueur contrôle un véhicule à l'aide d'un joystick, et les ennemis sont générés aléatoirement. Le but est de survivre le plus longtemps possible.
 
-## Stack technique
+Le jeu est conçu pour fonctionner sur une borne d'arcade avec des contrôleurs spécifiques (joysticks + boutons). Les interactions sont basées sur les boutons de la borne, conformément à la description du fichier `bouton.txt`.
 
-- **Langage :** Java
-- **Bibliothèque graphique :** MG2D (Fenetre, geometrie)
+## 2. Stack technique
 
-## Structure principale
+- **Langage** : Java
+- **Librairie principale** : MG2D (outil graphique fourni pour le projet)
+- **Tests** : JUnit 5
 
-- `Main.java` : Point d'entrée — boucle de jeu principale, appel à `Jeu.AvancerUnPasDeTemps()`
-- `Jeu.java` : Gestion de la fenêtre, génération du décor et des ennemis
-- `Joueur.java` : Voiture du joueur (déplacement, collision)
-- `Ennemi.java` : Véhicules ennemis (voitures, chars, barils)
-- `ClavierBorneArcade.java` : Adaptation des contrôles pour la borne
-- `decor/`, `img/`, `sons/` : Ressources graphiques et sonores
+## 3. Structure principale
 
-## Installation / lancement
+- `InitialDrift/Jeu.java` : Classe principale du jeu, gère la logique de jeu, les générations d'ennemis et de décor.
+- `InitialDrift/Joueur.java` : Représente le joueur avec ses interactions (contrôles, collisions).
+- `InitialDrift/Ennemi.java` : Représente les ennemis avec leurs comportements (vitesse, déplacement, collisions).
+- `InitialDrift/Main.java` : Point d'entrée du programme.
+- `InitialDrift/tests/Tests.java` : Fichier de tests unitaires pour `Ennemi` et `Joueur`.
+
+## 4. Installation / lancement
+
+Aucun script `.sh` à la racine n’est fourni. Pour lancer le jeu, il faut compiler et exécuter les fichiers Java avec un environnement Java 11+.
 
 ```bash
-./InitialDrift.sh
+javac InitialDrift/*.java
+java InitialDrift.Main
 ```
 
-## Contrôles borne
+## 5. Contrôles borne
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Déplacement de la voiture (gauche/droite) |
-| Bouton 4 | Quitter |
+D'après le fichier `bouton.txt` :
+
+- **Joystick** (flèches) : Déplacement de la voiture.
+- **Touche Y** (Z) : Quitter.
+- Les autres touches ne sont pas utilisées.

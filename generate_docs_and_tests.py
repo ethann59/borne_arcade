@@ -296,7 +296,7 @@ class GameAnalyzer:
     1. **Description** (objectif + contexte borne)
     2. **Stack technique** (langage, lib principale)
     3. **Structure principale** (fichiers/modules clés réellement présents)
-    4. **Installation / lancement** (priorité au script `.sh` à la racine s'il existe)
+    4. **Installation / lancement**
     5. **Contrôles borne** (à partir de bouton.txt, sinon "à vérifier")
 
 Réponds UNIQUEMENT avec le contenu Markdown, sans préambule."""

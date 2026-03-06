@@ -1,32 +1,48 @@
-# Pong
+# Documentation du Jeu d'Arcade
 
-## Description
+## 1. Description
 
-Pong est le premier jeu programmé avec la bibliothèque MG2D, développé par Rémi Synave (2013). Un jeu de Pong classique particulièrement bien codé, accompagné d'une musique entraînante. La balle accélère progressivement au fil de la partie.
+Ce jeu est un **Pong** réimplémenté pour une **borne d'arcade**, avec un contrôle spécifique aux joysticks et boutons. Il implémente les mécaniques de base d’un jeu de ping-pong, avec deux joueurs contrôlés par des manettes distinctes. Le jeu est conçu pour fonctionner dans un environnement d'arcade, avec une interface graphique simple et des interactions directes via les entrées spécifiques à la borne.
 
-## Stack technique
+## 2. Stack technique
 
-- **Langage :** Java
-- **Bibliothèque graphique :** MG2D (FenetrePleinEcran, Couleur, geometrie)
-- **Audio :** MG2D.audio (musique de fond et effets sonores)
+- **Langage** : Java
+- **Librairie principale** : `java.awt` pour l’affichage et les événements clavier
+- **Framework** : Aucun framework externe utilisé, code natif avec `java.awt` et `javax.swing`
+- **Environnement** : Exécution sur machine Linux/Windows avec Java 8+
 
-## Structure principale
+## 3. Structure principale
 
-- `Main.java` : Point d'entrée — boucle de jeu, gestion de la vitesse
-- `Pong.java` : Logique du jeu (403 lignes) — gestion de la barre, de la balle, des rebonds et de l'accélération progressive
-- `ClavierBorneArcade.java` : Adaptation des contrôles pour la borne
-- Ressources : `Tied_Up.mp3` (musique), `bip.mp3` (effet sonore), `img/` (textures)
+Les fichiers clés présents dans le projet sont :
 
-## Installation / lancement
+- `Pong.java` : Classe principale du jeu, gère la boucle de jeu et l'affichage.
+- `Clavier.java` : Gestion des événements clavier pour les inputs du joueur.
+- `Joueur.java` : Modélise un joueur avec ses contrôles et sa position.
+- `Balle.java` : Représente la balle et ses règles de déplacement.
+- `Fenetre.java` : Fenêtre principale de l’application.
+- `Clavier.java` : Gestion des entrées clavier (joysticks/boutons).
+- `Clavier.java` : Gestion des entrées clavier (joysticks/boutons).
 
-```bash
-./Pong.sh
-```
+## 4. Installation / lancement
 
-## Contrôles borne
+Aucun script `.sh` n’est fourni à la racine. Pour lancer le jeu :
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Déplacement de la barre (haut/bas) |
-| Bouton 4 | Quitter |
-| Bouton 5 | Lancer la balle |
+1. Compiler les fichiers Java :
+   ```bash
+   javac *.java
+   ```
+2. Exécuter le programme principal :
+   ```bash
+   java Pong
+   ```
+
+## 5. Contrôles borne
+
+D'après le fichier `bouton.txt` :
+
+- **Joystick J1** (flèches) : Déplacement de la barre.
+- **Touche Y** (Z) : Quitter.
+- **Touche F** (A) : Lancer la balle.
+- Les autres touches ne sont pas utilisées.
+
+> Mapping clavier borne : J1 Joystick = flèches, J1 X=R, Y=T, Z=Y, A=F, B=G, C=H. J2 Joystick = O/K/L/M, J2 X=A, Y=Z, Z=E, A=Q, B=S, C=D.

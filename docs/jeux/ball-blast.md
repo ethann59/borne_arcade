@@ -1,32 +1,42 @@
-# Ball Blast
+# Mini Documentation - Ball Blast
 
-## Description
+## 1. **Description**
 
-Ball Blast est un jeu arcade de destruction développé par Arnaud Wissocq et Justin Fontaine (2025). Le joueur contrôle un canon et doit détruire des boules qui tombent du haut de l'écran pour obtenir le meilleur score possible.
+**Objectif** : Détruire des balles de différentes tailles en les faisant exploser avec un canon contrôlé par le joueur. Le jeu se déroule en plusieurs niveaux avec une progression de difficulté.
 
-## Stack technique
+**Contexte borne** : Ce jeu est conçu pour une borne d'arcade équipée de joysticks et de boutons. Il est optimisé pour un gameplay rapide et intuitif, adapté à un usage en environnement public.
 
-- **Langage :** Python
-- **Bibliothèque principale :** Pygame
+## 2. **Stack technique**
 
-## Structure principale
+- **Langage** : Python
+- **Lib principale** : Pygame
 
-- `src/__main__.py` : Point d'entrée du jeu
-- `src/` : Code source principal
-- `assets/` : Ressources graphiques et sonores
-- `description.txt` : Description du jeu pour la borne
-- `bouton.txt` : Configuration des touches borne
+## 3. **Structure principale**
 
-## Installation / lancement
+- `src/menu.py` : Gestion du menu principal et des options (pause, crédits, quitter).
+- `src/game.py` : Boucle principale du jeu, gestion des états (menu, jeu, pause, crédits).
+- `src/player.py` : Classe du joueur (canon et roues).
+- `src/ball.py` : Classe des balles (génération, destruction, explosion).
+- `src/constantes.py` : Définition des constantes (taille écran, vitesses, couleurs).
+- `src/bullet.py` : Gestion des balles de canon (tir, déplacement).
+- `src/score.py` : Gestion du score et enregistrement des meilleurs scores.
+
+## 4. **Installation / lancement**
+
+Aucun script `.sh` à la racine n’existe. Pour lancer le jeu :
 
 ```bash
-./ball-blast.sh
+python3 src/main.py
 ```
 
-Le script `ball-blast.sh` à la racine du projet gère le lancement.
+> **Note** : Assurez-vous d’avoir installé Pygame (`pip install pygame`) avant de lancer le jeu.
 
-## Contrôles borne
+## 5. **Contrôles borne**
 
-- **Joystick gauche/droite :** Déplacer le canon
-- **Bouton Interagir :** Aucun
-- **Bouton Retour :** Aucun
+D'après le fichier `bouton.txt` :
+
+- **Joystick** (flèches) : Déplacement gauche/droite du canon.
+- **Touche R** (X) : Gauche et droite.
+- **Touche T** (Y) : Interagir.
+- **Touche F** (A) : Retour.
+- Les autres touches ne sont pas utilisées.

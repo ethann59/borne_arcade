@@ -1,35 +1,46 @@
-# Columns
+# Columns Arcade Game
 
-## Description
+## 1. Description
 
-Columns est un jeu de puzzle développé par Dorian Terlat (2020). Alignez trois gemmes de même couleur pour les faire disparaître. ATTENTION ÇA CLIGNOTE !
+**Objectif :**  
+Le joueur doit aligner horizontalement 3 ou plus gemmes de la même couleur dans une grille pour les faire disparaître. Le jeu se déroule sur une borne d'arcade avec deux joueurs possibles, chacun contrôlant une colonne de gemmes tombant dans une grille.
 
-## Stack technique
+**Contexte borne :**  
+Le jeu est conçu pour une borne d'arcade avec deux joysticks et plusieurs boutons. Les joueurs contrôlent leurs colonnes avec des commandes de déplacement et de rotation, en utilisant les boutons pour lâcher les gemmes.
+
+## 2. Stack technique
 
 - **Langage :** Java
-- **Bibliothèque graphique :** MG2D (FenetrePleinEcran, Clavier)
+- **Librairie principale :** MG (MG est une librairie graphique pour l'arcade, utilisée ici pour l'affichage et les interactions)
+- **Tests :** JUnit 5
 
-## Structure principale
+## 3. Structure principale
 
-- `Main.java` : Point d'entrée — boucle de jeu, fenêtre plein écran
-- `Partie.java` : Logique de la partie en cours
-- `Menu.java` : Écran de menu
-- `Puits.java` : Grille de jeu (le puits où tombent les gemmes)
-- `Colone.java` : Colonne de gemmes en cours de descente
-- `Gemme.java` : Représentation d'une gemme individuelle
-- `Controles.java` : Gestion des entrées joueur
-- `ClavierBorneArcade.java` : Adaptation des contrôles pour la borne
+- `Partie.java` – Gestion globale du jeu, règles et logique de base.
+- `Pile.java` – Implémentation d'une pile pour la gestion des colonnes.
+- `Colonne.java` – Gestion des colonnes de gemmes.
+- `Gemme.java` – Représentation d'une gemme avec couleur.
+- `Pile.java` – Structure de données pour la gestion des colonnes.
+- `Menu.java` – Interface de menu principal.
+- `Columns.java` – Classe principale du jeu.
+- `Pile.java` – Gestion des piles de colonnes.
+- `tests/Tests.java` – Tests unitaires du jeu.
 
-## Installation / lancement
+## 4. Installation / lancement
+
+Aucun script `.sh` à la racine n’est fourni.  
+Le projet peut être compilé et lancé via une commande standard Java :
 
 ```bash
-./Columns.sh
+javac *.java
+java Columns
 ```
 
-## Contrôles borne
+## 5. Contrôles borne
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Déplacement de la colonne |
-| Bouton 4 | Quitter |
-| Bouton 5 | Intervertir les gemmes |
+D'après le fichier `bouton.txt` :
+
+- **Joystick J1** (flèches) : Déplacement de la barre.
+- **Touche Y** (Z) : Quitter.
+- **Touche F** (A) : Intervertir les gemmes.
+- Les autres touches ne sont pas utilisées.

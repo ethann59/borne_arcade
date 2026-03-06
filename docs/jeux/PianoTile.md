@@ -1,40 +1,61 @@
-# PianoTile
+# PianoTile - Documentation
 
-## Description
+## 1. **Description**
 
-PianoTile est une adaptation du célèbre jeu de piano développée par GUILBERT Emma (2025). Des tuiles défilent à l'écran et le joueur doit appuyer sur les bonnes colonnes au bon moment, le tout accompagné de musiques exceptionnelles.
+PianoTile est un jeu de type "piano interactive" conçu pour une borne d'arcade. L'objectif du jeu est de permettre aux joueurs de reproduire des mélodies en utilisant les touches du piano virtuel, avec un système de scoring basé sur la précision et la rapidité. Le jeu intègre des modes de jeu variés comme le mode solo, le mode multijoueur, et des fonctionnalités de personnalisation via un profil utilisateur.
 
-## Stack technique
+Le jeu est optimisé pour une utilisation sur une borne d'arcade, avec un contrôleur composé de joysticks et de boutons physiques, ce qui influence le vocabulaire et les interactions dans l'interface.
 
-- **Langage :** Python
-- **Bibliothèques :** Pygame, librosa (analyse audio)
-- **Dépendances :** `requirements.txt` (pygame, librosa)
+## 2. **Stack technique**
 
-## Structure principale
+- **Langage** : Python
+- **Librairie principale** : Pygame
+- **Architecture** : Orientée objet, avec une structure modulaire basée sur les fichiers de l'interface et des modules de jeu.
 
-- `app/game.py` : Point d'entrée — orchestrateur (Database, Interface, Logic)
-- `app/project.py` : Configuration du projet
-- `core/logic.py` : Logique de jeu (651 lignes — gestion des tuiles, couleurs, score)
-- `core/button.py` : Gestion des boutons
-- `core/player.py` : Profil joueur
-- `core/pageState.py` : Machine à états des écrans
-- `ui/interface.py` : Interface graphique principale
-- `ui/layout/`, `ui/manager/`, `ui/page/`, `ui/utils/` : Composants UI (architecture MVC)
-- `data/database.py` : Persistance des données (scores, paramètres)
-- `assets/` : Ressources (musiques, images)
+## 3. **Structure principale**
 
-## Installation / lancement
+- `main.py` : Point d'entrée du jeu.
+- `game.py` : Gestion du cycle de jeu, de l'interface et des événements.
+- `ui/` : Dossier contenant les modules d'interface utilisateur.
+  - `interface.py` : Gestion de la page courante et des affichages.
+  - `layout/` : Gestion des éléments d'affichage.
+    - `backgroundView.py` : Affichage des fonds d'écran.
+    - `selectionView.py` : Affichage et gestion des sélections.
+  - `manager/` : Gestion des éléments de l'interface.
+    - `windowManager.py` : Gestion de la fenêtre et des ressources.
+  - `utils/` : Outils utilitaires.
+    - `image.py` : Gestion des images.
+- `core/` : Modules logiques du jeu.
+  - `pageState.py` : Énumération des pages de l'interface.
+  - `gameData.py` : Gestion des données du jeu.
+  - `database.py` : Accès à la base de données.
+- `data/` : Fichiers de données.
+  - `description.txt` : Description du jeu.
+  - `bouton.txt` : Mappage des boutons et contrôles.
+- `scripts/` : Scripts d'installation et de lancement.
+  - `install.sh` : Script d'installation.
+  - `run.sh` : Script de lancement du jeu.
+
+## 4. **Installation / lancement**
+
+Un script d’installation et de lancement est disponible à la racine du projet.
 
 ```bash
-./PianoTile.sh
+# Installer les dépendances
+./scripts/install.sh
+
+# Lancer le jeu
+./scripts/run.sh
 ```
 
-## Contrôles borne
+## 5. **Contrôles borne**
 
-| Contrôle | Action |
-|----------|--------|
-| Bouton 1 | Colonne 1 (touches R/A) |
-| Bouton 2 | Colonne 2 (touches T/Z) |
-| Bouton 3 | Colonne 3 (touches Y/E) |
-| Bouton 4 | Colonne 4 (touches F/Q) |
-| Bouton 6 | Valider (touches H/D) |
+D'après le fichier `bouton.txt` (touches J1 / J2) :
+
+- **Joystick** : Navigation dans les menus.
+- **Touche R / A** (X) : Colonne 1.
+- **Touche T / Z** (Y) : Colonne 2.
+- **Touche Y / E** (Z) : Colonne 3.
+- **Touche F / Q** (A) : Colonne 4.
+- **Touche G / S** (B) : Non utilisé.
+- **Touche H / D** (C) : Valider.

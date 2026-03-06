@@ -106,5 +106,4 @@ La borne utilise un clavier arcade avec configuration spéciale. Voir [ClavierBo
 
 ## 🚀 Prochaines étapes
 
-- [Installer le générateur de documentation](generator.md)
 - [Retour à l'accueil](../index.md)

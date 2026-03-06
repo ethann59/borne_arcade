@@ -1,43 +1,43 @@
-# Minesweeper
+# Minesweeper Arcade
 
 ## Description
 
-Minesweeper est une adaptation du célèbre jeu de démineur, développé par Mathilde Henrion et Johan Pezo (2025). Découvrez les cases sans faire exploser de mines. Plusieurs niveaux de difficulté (Easy, Medium, Hard) et thèmes visuels (Classic, Dark Classic) sont disponibles.
+Jeu de démineur adapté pour une borne d'arcade, utilisant un clavier personnalisé avec des joysticks et des boutons pour le contrôle. Le jeu respecte les règles classiques du démineur : découvrir les cases sans exploser les bombes. Le contexte de la borne impose une interface simplifiée et une navigation intuitive avec les entrées physiques.
 
 ## Stack technique
 
-- **Langage :** Java
-- **Bibliothèque graphique :** MG2D (Fenetre, Couleur, geometrie)
+- **Langage** : Java
+- **Librairie principale** : MG2D (bibliothèque graphique fournie pour le projet)
 
 ## Structure principale
 
-- `MainGraphic.java` : Point d'entrée graphique (246 lignes)
-- `Minesweeper.java` : Logique principale du démineur
-- `Board.java` : Plateau de jeu (grille de cases)
-- `Tile.java` : Case individuelle (mine, vide, chiffre)
-- `Bomb.java` : Gestion des mines
-- `Button.java` : Boutons d'interface
-- `Cursor.java` : Gestion du curseur
-- `Menu.java` : Écran de menu
-- `Score.java` / `ScoreData.java` : Gestion des scores
-- `Level.java` / `Easy.java` / `Medium.java` / `Hard.java` : Niveaux de difficulté
-- `Theme.java` / `Classic.java` / `DarkClassic.java` : Thèmes visuels
-- `Dig.java` / `Flag.java` / `Empty.java` : Actions sur les cases
-- `Constants.java` : Constantes partagées
-- `ClavierBorneArcade.java` / `KeyboardArcade.java` : Contrôles borne
+- `Minesweeper.java` : Point d'entrée du jeu, gestion de la fenêtre principale.
+- `Grille.java` : Représente la grille de jeu avec ses cases et logique de jeu.
+- `Case.java` : Modélise une case individuelle avec état (découverte, drapeau, bombe).
+- `Clavier.java` : Gestion des entrées clavier et contrôles de la borne.
+- `Constante*.java` : Constantes de configuration pour les niveaux (easy, medium, hard).
+- `Theme.java` : Gestion du thème graphique (couleurs, images).
+- `Menu.java` : Interface de menu pour sélectionner le niveau et les options.
 
 ## Installation / lancement
 
-```bash
-./Minesweeper.sh
-```
+Aucun script `.sh` à la racine n'existe. Pour lancer le jeu :
+
+1. Compiler les fichiers Java :
+   ```bash
+   javac *.java
+   ```
+2. Exécuter le programme principal :
+   ```bash
+   java Minesweeper
+   ```
 
 ## Contrôles borne
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Déplacement du curseur |
-| Bouton 1 | Quitter |
-| Bouton 5 | Creuser (révéler une case) |
-| Bouton 6 | Poser / retirer un drapeau |
-| Bouton 7 | Valider (creuser) |
+D'après le fichier `bouton.txt` :
+
+- **Joystick** (flèches) : Déplacement dans la grille.
+- **Touche R** (X) : Quitter.
+- **Touche F** (A) : Creuser.
+- **Touche G** (B) : Poser/retirer un drapeau.
+- **Touche H** (C) : Entrer/creuser.

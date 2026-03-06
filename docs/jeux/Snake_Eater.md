@@ -1,33 +1,44 @@
-# Snake Eater
+# Snake Game - Documentation Mini
 
-## Description
+## 1. Description
 
-Snake Eater est un Snake classique développé par l'équipe MG2D (2013). Mangez un maximum de pommes pour faire grandir votre serpent. Attention : si vous perdez trop rapidement, le jeu se moquera de vous !
+Jeu de type Snake développé pour une borne d'arcade, où le joueur contrôle un serpent à l’aide d’un joystick pour collectionner des pommes. Le jeu se termine si le serpent touche les bords ou lui-même. Le but est d'obtenir le meilleur score possible.
 
-## Stack technique
+Le jeu est conçu pour un environnement de borne d'arcade, avec des contrôles via joystick et boutons physiques. Il intègre un système de sauvegarde des meilleurs scores.
 
-- **Langage :** Java
-- **Bibliothèque graphique :** MG2D (FenetrePleinEcran, Couleur, geometrie)
-- **Résolution :** 1275×1020 (grille de cases de 30px)
+## 2. Stack technique
 
-## Structure principale
+- **Langage** : Java
+- **Librairie principale** : MG2D (outil de développement graphique pour l'enseignement)
+- **Environnement** : Borne d'arcade avec interface joystick et boutons
 
-- `Snake_Eater.java` : Classe principale (145 lignes) — fenêtre plein écran, boucle de jeu, gestion du serpent et du score
-- `Serpent.java` : Logique du serpent (corps, déplacement, croissance)
-- `Nourriture.java` : Gestion de la nourriture
-- `Pomme.java` : Représentation d'une pomme
-- `HighScore.java` / `LigneHighScore.java` : Gestion des meilleurs scores
-- `ClavierBorneArcade.java` : Adaptation des contrôles pour la borne
+## 3. Structure principale
 
-## Installation / lancement
+- `SnakeGame.java` : Classe principale du jeu
+- `Serpent.java` : Gestion du serpent (déplacement, croissance)
+- `Nourriture.java` : Gestion des pommes à collecter
+- `Pomme.java` : Représentation d’une pomme
+- `HighScore.java` : Gestion du système de sauvegarde des meilleurs scores
+- `LigneHighScore.java` : Représentation d’une entrée de high score
+- `Fenetre.java` : Interface graphique (fournie par MG2D)
+- `Point.java` : Représentation d’un point dans l’espace
+- `Carre.java` : Représentation d’un carré (utilisé pour les éléments graphiques)
+- `Couleur.java` : Définition des couleurs
+
+## 4. Installation / lancement
+
+Aucun script `.sh` à la racine n’est fourni. Le projet est à compiler et exécuter manuellement à partir d’un environnement Java. Les classes doivent être compilées avec un compilateur Java, et l’exécutable peut être lancé via la commande :
 
 ```bash
-./Snake_Eater.sh
+java SnakeGame
 ```
 
-## Contrôles borne
+Assurez-vous que la librairie MG2D soit disponible dans le classpath.
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Direction du serpent (haut/bas/gauche/droite) |
-| Bouton 4 | Quitter |
+## 5. Contrôles borne
+
+D'après le fichier `bouton.txt` :
+
+- **Joystick** (flèches) : Déplacement du serpent (haut, bas, gauche, droite).
+- **Touche Y** (Z) : Quitter.
+- Les autres touches ne sont pas utilisées.

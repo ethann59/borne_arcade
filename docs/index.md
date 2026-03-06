@@ -10,8 +10,9 @@ Cette borne d'arcade regroupe une collection de 14 jeux développés en différe
 
 ### Pour démarrer rapidement
 
-- **[Guide Rapide](GUIDE_RAPIDE.md)** : Démarrage en 5 minutes
+- **[Guide Utilisateur](UTILISATEUR.md)** : Navigation et contrôles de la borne
 - **[Installation](installation/overview.md)** : Configuration complète du projet
+- **[Architecture technique](TECHNIQUE.md)** : Structure du projet et composants
 
 ### Documentation des jeux
 
@@ -23,9 +24,9 @@ Chaque jeu dispose de sa propre documentation incluant :
 - Contrôles et utilisation
 - Tests unitaires
 
-Consultez la section [Jeux](jeux/index.md) pour accéder aux documentations individuelles.
+Consultez la section [Jeux](jeux/index.md) pour accéder aux documentations individuelles, ou le guide [Ajouter un jeu](AJOUT_JEU.md) pour contribuer.
 
-La documentation dédiée de Galad-Scott est disponible ici : [https://ethann59.github.io/Galad-Scott/](https://ethann59.github.io/Galad-Scott/).
+La documentation dédiée du jeu Galad-Scott est disponible ici : [https://ethann59.github.io/Galad-Scott/](https://ethann59.github.io/Galad-Scott/).
 
 ### Outils de développement
 
@@ -55,7 +56,7 @@ La documentation dédiée de Galad-Scott est disponible ici : [https://ethann59.
 ### 3. Consulter le résultat
 
 ```bash
-cat projet/JavaSpace/DOCUMENTATION_AI.md
+cat projet/JavaSpace/DOCUMENTATION.md
 ```
 
 ## 📊 Vue d'ensemble des jeux
@@ -70,9 +71,9 @@ cat projet/JavaSpace/DOCUMENTATION_AI.md
 | JavaSpace | Java | Shoot'em up spatial |
 | Kowasu_Renga | Java | Casse-briques |
 | Minesweeper | Java | Démineur classique |
-| OsuTile | Lua | Jeu de rythme |
-| PianoTile | Lua | Jeu de piano tiles |
-| Pong | Python | Pong classique |
+| OsuTile | Python | Jeu de rythme |
+| PianoTile | Python | Jeu de piano tiles |
+| Pong | Java | Pong classique |
 | Puissance_X | Java | Puissance 4 avec variantes |
 | Snake_Eater | Java | Snake amélioré |
 | TronGame | Python | Jeu inspiré de Tron |

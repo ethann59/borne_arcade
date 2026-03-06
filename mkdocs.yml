@@ -58,12 +58,15 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
-  - Guide Rapide: GUIDE_RAPIDE.md
+  - Génération de documentation: "outils/generator.md"
+  - Guide Utilisateur: UTILISATEUR.md
   - Installation:
       - Vue d'ensemble: installation/overview.md
-      - Générateur de Documentation: installation/generator.md
+      - Guide d'installation: INSTALLATION.md
+      - Architecture technique: TECHNIQUE.md
   - Jeux:
       - Vue d'ensemble: jeux/index.md
+      - Ajouter un jeu: AJOUT_JEU.md
       - ball-blast: jeux/ball-blast.md
       - Columns: jeux/Columns.md
       - CursedWare: jeux/CursedWare.md

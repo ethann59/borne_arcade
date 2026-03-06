@@ -1,29 +1,31 @@
-# Kowasu Renga
+# Documentation du Jeu Arcade
 
-## Description
+## 1. Description
+Ce jeu est un **casse-brique** (breakout) conçu pour une **borne d'arcade**. L'objectif est de faire rebondir une balle pour casser tous les blocs disposés en forme de pyramide. Le joueur utilise un **joystick** pour déplacer une raquette en bas de l'écran et un **bouton A** pour lancer la balle. Le jeu est une adaptation simple et directe du genre de jeu classique, adapté au contexte de la borne avec des contrôles physiques spécifiques.
 
-Kowasu Renga est un casse-brique classique développé par l'équipe MG2D (2013). Ce jeu fait partie des démos de la bibliothèque MG2D. Déplacez la barre pour renvoyer la balle et détruire toutes les briques.
+## 2. Stack technique
+- **Langage** : Java
+- **Librairie principale** : `MGD2` 
+- **Environnement** : Exécution sur borne d'arcade (contrôles joystick + boutons)
 
-## Stack technique
+## 3. Structure principale
+- `Kowasu_Renga.java` : Fichier principal contenant la logique du jeu, les initialisations, les boucles de jeu et les contrôles.
+- `Tests.java` : Fichier contenant les tests unitaires pour les classes du jeu (Clavier, Fenêtre, Cercle, Rectangle, etc.)
+- `bouton.txt` : Définit les contrôles de la borne.
+- `description.txt` : Fournit une description du jeu et de son contexte.
 
-- **Langage :** Java
-- **Bibliothèque graphique :** MG2D (FenetrePleinEcran, Couleur, geometrie)
-- **Résolution :** 1280×1024
-
-## Structure principale
-
-- `Kowasu_Renga.java` : Classe principale unique — fenêtre plein écran, boucle de jeu, gestion des briques, de la balle et de la barre
-
-## Installation / lancement
-
+## 4. Installation / lancement
+Aucun script `.sh` à la racine n’est fourni, mais le projet peut être compilé et exécuté via un IDE Java ou via la ligne de commande :
 ```bash
-./Kowasu_Renga.sh
+javac *.java
+java Kowasu_Renga
 ```
 
-## Contrôles borne
+## 5. Contrôles borne
 
-| Contrôle | Action |
-|----------|--------|
-| Joystick | Déplacement de la barre (gauche/droite) |
-| Bouton 4 | Quitter |
-| Bouton 5 | Lancer la balle |
+D'après le fichier `bouton.txt` :
+
+- **Joystick** (flèches) : Déplacement de la raquette (gauche/droite).
+- **Touche Y** (Z) : Quitter.
+- **Touche F** (A) : Lancer la balle.
+- Les autres touches ne sont pas utilisées.

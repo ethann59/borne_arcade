@@ -90,7 +90,6 @@ class OllamaWrapper:
     # Constructeur : on fixe l'hôte/timeout et on prépare des valeurs par défaut.
     def __init__(
         self,
-        #base_url: str = "http://kinator.fr:10103/",
         base_url: str = "http://10.22.28.190:11434",
         timeout_s: float = 120.0,
     ) -> None:
